@@ -1,0 +1,23 @@
+{
+  "name": "testble",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "start": "ecstatic",
+    "build": "babel ./src/ --out-dir ./build && webpack"
+  },
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "babel": "^5.8.23",
+    "babel-core": "^5.8.23",
+    "babel-loader": "^5.3.2",
+    "json-loader": "^0.5.2",
+    "webpack": "^1.12.0",
+    "babel-loader": "^5.3.2"
+  },
+  "dependencies": {
+    "noble": "^1.1.0"
+  }
+}

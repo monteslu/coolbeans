@@ -1,0 +1,18 @@
+#greeting {
+  background-color: #F8F8F8;
+  font-family: 'Open Sans', sans-serif;
+  font-size: 24px;
+  margin: 15px;
+}
+
+.progress{
+  margin: 15px;
+}
+
+.slider{
+  margin: 12px;
+}
+
+.scan{
+  margin: 15px;
+}
