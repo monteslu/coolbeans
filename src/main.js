@@ -11,46 +11,12 @@ const button = document.getElementById('scan');
 const SERIAL_SERVICE = 'a495ff10-c5b1-4b44-b512-1370f02d74de';
 
 
-function getDevice(){
-  return navigator.bluetooth.requestDevice({ filters: [{ services: [SERIAL_SERVICE, 0x1800, 0x1801] }] });
-}
-
 function doScan(){
  console.log('hello');
- 
- 
-//   getDevice()
-// .then(function(device){
-   
-//   console.log('device', device);
-//   // Human-readable name of the device.
-//   console.log('name', device.name);
-//   // Indicates whether or not the device is paired with the system.
-//   console.log('paired', device.paired);
-//   // Filtered UUIDs of GATT services the website origin has access to.
-//   console.log('services', device.uuids);
- 
-//   // Attempts to connect to remote GATT Server.
-//   return device.connectGATT();
-// })
-// .then(function(server){
-//   console.log('server', server);
-//   return server.getPrimaryService(SERIAL_SERVICE);
-// })
-// .then(function(service){
-//   console.log('service', service);
-// })
-// .catch(function(error){
-//   console.log(error);
-   
-// });
-
-
-
-var intervalId;
-var connectedBean;
-
-Bean.discover(function(bean){
+  var intervalId;
+  var connectedBean;
+  
+  Bean.discover(function(bean){
   connectedBean = bean;
   
   bean.on("accell", function(x, y, z, valid){
@@ -87,7 +53,7 @@ Bean.discover(function(bean){
       //   console.log("request temp sent");
       // });
 
-    }
+    };
 
     intervalId = setInterval(readData,1000);
 

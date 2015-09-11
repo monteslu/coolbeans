@@ -57,39 +57,8 @@
 
 	var SERIAL_SERVICE = 'a495ff10-c5b1-4b44-b512-1370f02d74de';
 
-	function getDevice() {
-	  return navigator.bluetooth.requestDevice({ filters: [{ services: [SERIAL_SERVICE, 0x1800, 0x1801] }] });
-	}
-
 	function doScan() {
 	  console.log('hello');
-
-	  //   getDevice()
-	  // .then(function(device){
-
-	  //   console.log('device', device);
-	  //   // Human-readable name of the device.
-	  //   console.log('name', device.name);
-	  //   // Indicates whether or not the device is paired with the system.
-	  //   console.log('paired', device.paired);
-	  //   // Filtered UUIDs of GATT services the website origin has access to.
-	  //   console.log('services', device.uuids);
-
-	  //   // Attempts to connect to remote GATT Server.
-	  //   return device.connectGATT();
-	  // })
-	  // .then(function(server){
-	  //   console.log('server', server);
-	  //   return server.getPrimaryService(SERIAL_SERVICE);
-	  // })
-	  // .then(function(service){
-	  //   console.log('service', service);
-	  // })
-	  // .catch(function(error){
-	  //   console.log(error);
-
-	  // });
-
 	  var intervalId;
 	  var connectedBean;
 
@@ -5497,7 +5466,7 @@
 /* 27 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {'use strict';
+	'use strict';
 
 	var events = __webpack_require__(8);
 	var util = __webpack_require__(9);
@@ -5527,12 +5496,6 @@
 	    uuid: 'a495ff25c5b14b44b5121370f02d74de' }]
 	};
 
-	function stack(name) {
-	  var e = new Error(name);
-	  var stack = e.stack.replace(/^[^\(]+?[\n$]/gm, '').replace(/^\s+at\s+/gm, '').replace(/^Object.<anonymous>\s*\(/gm, '{anonymous}()@').split('\n');
-	  console.log(stack);
-	}
-
 	function addDashes(uuid) {
 	  if (uuid && uuid.length === 32) {
 	    uuid = uuid.substring(0, 8) + '-' + uuid.substring(8, 12) + '-' + uuid.substring(12, 16) + '-' + uuid.substring(16, 20) + '-' + uuid.substring(20);
@@ -5548,32 +5511,15 @@
 	}
 
 	var NobleBindings = function NobleBindings() {
-	  var port = 0xB1e;
-	  // this._ws = new WebSocket('ws://localhost:' + port);
 
 	  this._startScanCommand = null;
 	  this._peripherals = {};
 
-	  this.on('message', this._onMessage.bind(this));
+	  var self = this;
 
-	  // if (!this._ws.on) {
-	  //   this._ws.on = this._ws.addEventListener;
-	  // }
-
-	  // this._ws.on('open', this._onOpen.bind(this));
-	  // this._ws.on('close', this._onClose.bind(this));
-
-	  var _this = this;
-	  // this._ws.on('message', function(event) {
-	  //   var data = (process.title === 'browser') ? event.data : event;
-
-	  //   _this.emit('message', JSON.parse(data));
-	  // });
 	  setTimeout(function () {
-	    _this.emit('stateChange', 'poweredOn');
+	    self.emit('stateChange', 'poweredOn');
 	  }, 50); //maybe just a next tick?
-
-	  console.log('bindings constructor');
 	};
 
 	util.inherits(NobleBindings, events.EventEmitter);
@@ -5588,89 +5534,6 @@
 	  this.emit('stateChange', 'poweredOff');
 	};
 
-	NobleBindings.prototype._onMessage = function (event) {
-	  console.log('_onMessage', event);
-
-	  var type = event.type;
-	  var peripheralUuid = event.peripheralUuid;
-	  var address = event.address;
-	  var addressType = event.addressType;
-	  var advertisement = event.advertisement;
-	  var rssi = event.rssi;
-	  var serviceUuids = event.serviceUuids;
-	  var serviceUuid = event.serviceUuid;
-	  var includedServiceUuids = event.includedServiceUuids;
-	  var characteristics = event.characteristics;
-	  var characteristicUuid = event.characteristicUuid;
-	  var data = event.data ? new Buffer(event.data, 'hex') : null;
-	  var isNotification = event.isNotification;
-	  var state = event.state;
-	  var descriptors = event.descriptors;
-	  var descriptorUuid = event.descriptorUuid;
-	  var handle = event.handle;
-
-	  if (type === 'stateChange') {
-	    console.log(state);
-	    this.emit('stateChange', state);
-	  } else if (type === 'discover') {
-	    advertisement = {
-	      localName: advertisement.localName,
-	      txPowerLevel: advertisement.txPowerLevel,
-	      serviceUuids: advertisement.serviceUuids,
-	      manufacturerData: advertisement.manufacturerData ? new Buffer(advertisement.manufacturerData, 'hex') : null,
-	      serviceData: advertisement.serviceData ? new Buffer(advertisement.serviceData, 'hex') : null
-	    };
-
-	    this._peripherals[peripheralUuid] = {
-	      uuid: peripheralUuid,
-	      address: address,
-	      advertisement: advertisement,
-	      rssi: rssi
-	    };
-
-	    this.emit('discover', peripheralUuid, address, addressType, advertisement, rssi);
-	  } else if (type === 'connect') {
-	    this.emit('connect', peripheralUuid);
-	  } else if (type === 'disconnect') {
-	    this.emit('disconnect', peripheralUuid);
-	  } else if (type === 'rssiUpdate') {
-	    this.emit('rssiUpdate', peripheralUuid, rssi);
-	  } else if (type === 'servicesDiscover') {
-	    this.emit('servicesDiscover', peripheralUuid, serviceUuids);
-	  } else if (type === 'includedServicesDiscover') {
-	    this.emit('includedServicesDiscover', peripheralUuid, serviceUuid, includedServiceUuids);
-	  } else if (type === 'characteristicsDiscover') {
-	    this.emit('characteristicsDiscover', peripheralUuid, serviceUuid, characteristics);
-	  } else if (type === 'read') {
-	    this.emit('read', peripheralUuid, serviceUuid, characteristicUuid, data, isNotification);
-	  } else if (type === 'write') {
-	    this.emit('write', peripheralUuid, serviceUuid, characteristicUuid);
-	  } else if (type === 'broadcast') {
-	    this.emit('broadcast', peripheralUuid, serviceUuid, characteristicUuid, state);
-	  } else if (type === 'notify') {
-	    this.emit('notify', peripheralUuid, serviceUuid, characteristicUuid, state);
-	  } else if (type === 'descriptorsDiscover') {
-	    this.emit('descriptorsDiscover', peripheralUuid, serviceUuid, characteristicUuid, descriptors);
-	  } else if (type === 'valueRead') {
-	    this.emit('valueRead', peripheralUuid, serviceUuid, characteristicUuid, descriptorUuid, data);
-	  } else if (type === 'valueWrite') {
-	    this.emit('valueWrite', peripheralUuid, serviceUuid, characteristicUuid, descriptorUuid);
-	  } else if (type === 'handleRead') {
-	    this.emit('handleRead', peripheralUuid, handle, data);
-	  } else if (type === 'handleWrite') {
-	    this.emit('handleWrite', peripheralUuid, handle);
-	  } else if (type === 'handleNotify') {
-	    this.emit('handleNotify', peripheralUuid, handle, data);
-	  }
-	};
-
-	NobleBindings.prototype._sendCommand = function (command) {
-	  var message = JSON.stringify(command);
-	  console.log('_sendCommand', command);
-
-	  //this._ws.send(message);
-	};
-
 	NobleBindings.prototype.startScanning = function (serviceUuids, allowDuplicates) {
 	  var self = this;
 	  console.log('startScanning', serviceUuids, allowDuplicates);
@@ -5683,16 +5546,18 @@
 	    console.log('scan finished', device);
 	    if (device) {
 
-	      var peripheralUuid = device.uuids[0];
 	      var address = device.instanceID;
-	      var rssi = device.rssi;
+	      var rssi;
+	      //TODO use device.adData when api is ready
+	      //rssi = device.adData.rssi;
 
 	      self._peripherals[address] = {
-	        uuid: peripheralUuid,
+	        uuid: address,
 	        address: address,
 	        advertisement: {}, //advertisement,
 	        rssi: rssi,
-	        device: device
+	        device: device,
+	        cachedServices: {}
 	      };
 
 	      self.emit('discover', device.instanceID, { localName: device.name, serviceUuids: serviceUuids }, device.rssi);
@@ -5707,10 +5572,7 @@
 	NobleBindings.prototype.stopScanning = function () {
 	  this._startScanCommand = null;
 
-	  this._sendCommand({
-	    action: 'stopScanning'
-	  });
-
+	  //TODO: need web api completed for this to work'=
 	  this.emit('scanStop');
 	};
 
@@ -5731,20 +5593,17 @@
 
 	NobleBindings.prototype.disconnect = function (deviceUuid) {
 	  var peripheral = this._peripherals[deviceUuid];
-
-	  this._sendCommand({
-	    action: 'disconnect',
-	    peripheralUuid: peripheral.uuid
-	  });
+	  if (peripheral.gattServer) {
+	    peripheral.gattServer.disconnect();
+	    this.emit('disconnect', deviceUuid);
+	  }
 	};
 
 	NobleBindings.prototype.updateRssi = function (deviceUuid) {
 	  var peripheral = this._peripherals[deviceUuid];
 
-	  this._sendCommand({
-	    action: 'updateRssi',
-	    peripheralUuid: peripheral.uuid
-	  });
+	  //TODO: need web api completed for this to work
+	  this.emit('rssiUpdate', deviceUuid, rssi);
 	};
 
 	NobleBindings.prototype.discoverServices = function (deviceUuid, uuids) {
@@ -5759,12 +5618,8 @@
 	NobleBindings.prototype.discoverIncludedServices = function (deviceUuid, serviceUuid, serviceUuids) {
 	  var peripheral = this._peripherals[deviceUuid];
 
-	  this._sendCommand({
-	    action: 'discoverIncludedServices',
-	    peripheralUuid: peripheral.uuid,
-	    serviceUuid: serviceUuid,
-	    serviceUuids: serviceUuids
-	  });
+	  //TODO impelment when web API has functionatility then emit response
+	  //this.emit('includedServicesDiscover', deviceUuid, serviceUuid, includedServiceUuids);
 	};
 
 	NobleBindings.prototype.discoverCharacteristics = function (deviceUuid, serviceUuid, characteristicUuids) {
@@ -5776,14 +5631,35 @@
 	  }
 	};
 
-	NobleBindings.prototype.read = function (deviceUuid, serviceUuid, characteristicUuid) {
-	  var peripheral = this._peripherals[deviceUuid];
+	NobleBindings.prototype._getPrimaryService = function (peripheral, serviceUuid) {
+	  serviceUuid = addDashes(serviceUuid);
 
-	  this._sendCommand({
-	    action: 'read',
-	    peripheralUuid: peripheral.uuid,
-	    serviceUuid: serviceUuid,
-	    characteristicUuid: characteristicUuid
+	  if (peripheral.cachedServices[serviceUuid]) {
+	    return new Promise(function (resolve, reject) {
+	      resolve(peripheral.cachedServices[serviceUuid]);
+	    });
+	  }
+
+	  return peripheral.gattServer.getPrimaryService(serviceUuid).then(function (service) {
+	    peripheral.cachedServices[serviceUuid] = service;
+	    return service;
+	  });
+	};
+
+	NobleBindings.prototype.read = function (deviceUuid, serviceUuid, characteristicUuid) {
+	  var self = this;
+	  var peripheral = this._peripherals[deviceUuid];
+	  console.log('read', deviceUuid, serviceUuid, characteristicUuid);
+
+	  self._getPrimaryService(peripheral, serviceUuid).then(function (service) {
+	    return service.getCharacteristic(addDashes(characteristicUuid));
+	  }).then(function (characteristic) {
+	    return characteristic.readValue();
+	  }).then(function (data) {
+	    console.log('value written');
+	    self.emit('write', peripheral.uuid, serviceUuid, characteristicUuid);
+	  })['catch'](function (err) {
+	    console.log('error writing to characteristc', err);
 	  });
 	};
 
@@ -5792,15 +5668,13 @@
 	  var peripheral = this._peripherals[deviceUuid];
 	  console.log('write', deviceUuid, serviceUuid, characteristicUuid, data, withoutResponse);
 
-	  peripheral.gattServer.getPrimaryService(addDashes(serviceUuid)).then(function (service) {
+	  self._getPrimaryService(peripheral, serviceUuid).then(function (service) {
 	    return service.getCharacteristic(addDashes(characteristicUuid));
 	  }).then(function (characteristic) {
-	    // Writing 1 is the signal to reset energy expended.
-	    //var resetEnergyExpended = new Uint8Array([1]);
 	    return characteristic.writeValue(data);
 	  }).then(function () {
 	    console.log('value written');
-	    self.emit('write', uuid, serviceUuid, characteristicUuid);
+	    self.emit('write', peripheral.uuid, serviceUuid, characteristicUuid);
 	  })['catch'](function (err) {
 	    console.log('error writing to characteristc', err);
 	  });
@@ -5809,87 +5683,57 @@
 	NobleBindings.prototype.broadcast = function (deviceUuid, serviceUuid, characteristicUuid, broadcast) {
 	  var peripheral = this._peripherals[deviceUuid];
 
-	  this._sendCommand({
-	    action: 'broadcast',
-	    peripheralUuid: peripheral.uuid,
-	    serviceUuid: serviceUuid,
-	    characteristicUuid: characteristicUuid,
-	    broadcast: broadcast
-	  });
+	  //TODO impelment when web API has functionatility then emit response
+	  //this.emit('broadcast', deviceUuid, serviceUuid, characteristicUuid, state);
 	};
 
 	NobleBindings.prototype.notify = function (deviceUuid, serviceUuid, characteristicUuid, notify) {
 	  var peripheral = this._peripherals[deviceUuid];
 
-	  //console.log('notify', deviceUuid, serviceUuid, characteristicUuid, notify, peripheral);
+	  console.log('notify not yet implemented', serviceUuid, characteristicUuid, notify);
 
-	  //TODO use web api when it becomes avaialable.
+	  //TODO impelment when web API has functionatility then emit response
 	  this.emit('notify', deviceUuid, serviceUuid, characteristicUuid, true);
 	};
 
 	NobleBindings.prototype.discoverDescriptors = function (deviceUuid, serviceUuid, characteristicUuid) {
 	  var peripheral = this._peripherals[deviceUuid];
 
-	  this._sendCommand({
-	    action: 'discoverDescriptors',
-	    peripheralUuid: peripheral.uuid,
-	    serviceUuid: serviceUuid,
-	    characteristicUuid: characteristicUuid
-	  });
+	  //TODO impelment when web API has functionatility then emit response
+	  //this.emit('descriptorsDiscover', deviceUuid, serviceUuid, characteristicUuid, descriptors);
 	};
 
 	NobleBindings.prototype.readValue = function (deviceUuid, serviceUuid, characteristicUuid, descriptorUuid) {
 	  var peripheral = this._peripherals[deviceUuid];
 
-	  this._sendCommand({
-	    action: 'readValue',
-	    peripheralUuid: peripheral.uuid,
-	    serviceUuid: serviceUuid,
-	    characteristicUuid: characteristicUuid,
-	    descriptorUuid: descriptorUuid
-	  });
+	  //TODO impelment when web API has functionatility then emit response
+	  //this.emit('valueRead', deviceUuid, serviceUuid, characteristicUuid, descriptorUuid, data);
 	};
 
 	NobleBindings.prototype.writeValue = function (deviceUuid, serviceUuid, characteristicUuid, descriptorUuid, data) {
 	  var peripheral = this._peripherals[deviceUuid];
 
-	  this._sendCommand({
-	    action: 'writeValue',
-	    peripheralUuid: peripheral.uuid,
-	    serviceUuid: serviceUuid,
-	    characteristicUuid: characteristicUuid,
-	    descriptorUuid: descriptorUuid,
-	    data: data.toString('hex')
-	  });
+	  //TODO impelment when web API has functionatility then emit response
+	  //this.emit('valueWrite', deviceUuid, serviceUuid, characteristicUuid, descriptorUuid);
 	};
 
 	NobleBindings.prototype.readHandle = function (deviceUuid, handle) {
 	  var peripheral = this._peripherals[deviceUuid];
 
-	  this._sendCommand({
-	    action: 'readHandle',
-	    peripheralUuid: peripheral.uuid,
-	    handle: handle
-	  });
+	  //TODO impelment when web API has functionatility then emit response
+	  //this.emit('handleRead', deviceUuid, handle, data);
 	};
 
 	NobleBindings.prototype.writeHandle = function (deviceUuid, handle, data, withoutResponse) {
 	  var peripheral = this._peripherals[deviceUuid];
 
-	  this._sendCommand({
-	    action: 'readHandle',
-	    peripheralUuid: peripheral.uuid,
-	    handle: handle,
-	    data: data.toString('hex'),
-	    withoutResponse: withoutResponse
-	  });
+	  //TODO impelment when web API has functionatility then emit response
+	  //this.emit('handleWrite', deviceUuid, handle);
 	};
 
 	var nobleBindings = new NobleBindings();
-	nobleBindings.bindingsName = 'web bluetooth api';
 
 	module.exports = nobleBindings;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
 /* 28 */
