@@ -1,4 +1,5 @@
 const Bean = require('ble-bean');
+const $ = require('jquery');
 
 
 console.log('Bean', Bean);
@@ -6,15 +7,33 @@ console.log('Bean', Bean);
 const element = document.querySelector("#greeting");
 element.innerText = "Hello, world!";
 
-const button = document.getElementById('scan');
+const button = $('#scan');
+const sliderR = $('#sliderR');
+const sliderG = $('#sliderG');
+const sliderB = $('#sliderB');
 
-const SERIAL_SERVICE = 'a495ff10-c5b1-4b44-b512-1370f02d74de';
+function sliderChanges(){
+  const r = parseInt(sliderR[0].value, 10);
+  const g = parseInt(sliderG[0].value, 10);
+  const b = parseInt(sliderB[0].value, 10);
+  console.log(r,g,b);
+  if(connectedBean){
+    connectedBean.setColor(new Buffer([r,g,b]),
+        function(){
+          console.log("led color sent");
+      });
+  }
+}
 
+sliderR.change(sliderChanges);
+sliderG.change(sliderChanges);
+sliderB.change(sliderChanges);
+
+var connectedBean;
 
 function doScan(){
  console.log('hello');
   var intervalId;
-  var connectedBean;
   
   Bean.discover(function(bean){
   connectedBean = bean;
@@ -33,20 +52,28 @@ function doScan(){
     console.log('disconnected');
   });
 
-  bean.connectAndSetup(function(){
+  bean.connectAndSetup(function(ready){
+    
+    console.log('bean ready', ready);
+    
+    bean.requestAccell(function(ok){
+      console.log("request accell sent", ok);
+    });
+    
+    const r = parseInt(sliderR[0].value, 10);
+    const g = parseInt(sliderG[0].value, 10);
+    const b = parseInt(sliderB[0].value, 10);
+  
+    
+    bean.setColor(new Buffer([r,g,b]),
+      function(){
+        console.log("led color sent");
+    });
 
     var readData = function() {
 
-      //set random led colors between 0-255. I find red overpowering so red between 0-64
-      bean.setColor(new Buffer([0,0,255]),
-        function(){
-          console.log("led color sent");
-      });
 
-      // bean.requestAccell(
-      // function(){
-      //   console.log("request accell sent");
-      // });
+      
 
       // bean.requestTemp(
       // function(){
@@ -55,7 +82,7 @@ function doScan(){
 
     };
 
-    intervalId = setInterval(readData,1000);
+    intervalId = setInterval(readData,2000);
 
   });
 
@@ -68,4 +95,4 @@ function doScan(){
 
 //function doCharacteristic
 
-button.addEventListener("click", doScan, false);
+button.click(doScan);
