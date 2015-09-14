@@ -52,7 +52,7 @@
 	console.log('Bean', Bean);
 
 	var element = document.querySelector("#greeting");
-	element.innerText = "Hello, world!";
+	element.innerText = "BLE-BEAN";
 
 	var button = $('#scan');
 	var sliderR = $('#sliderR');
@@ -78,7 +78,9 @@
 	var connectedBean;
 
 	function doScan() {
-	  console.log('hello');
+
+	  $('#progress').show();
+
 	  var intervalId;
 
 	  Bean.discover(function (bean) {
@@ -99,6 +101,9 @@
 	    });
 
 	    bean.connectAndSetup(function (ready) {
+
+	      $('#progress').hide();
+	      $('#controls').show();
 
 	      console.log('bean ready', ready);
 
@@ -5696,8 +5701,8 @@
 	    return service.getCharacteristic(addDashes(characteristicUuid));
 	  }).then(function (characteristic) {
 	    return characteristic.writeValue(data);
-	  }).then(function () {
-	    console.log('value written');
+	  }).then(function (writeResponse) {
+	    console.log('value written', writeResponse);
 	    self.emit('write', peripheral.uuid, serviceUuid, characteristicUuid);
 	  })['catch'](function (err) {
 	    console.log('error writing to characteristc', err);

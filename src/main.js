@@ -5,7 +5,7 @@ const $ = require('jquery');
 console.log('Bean', Bean);
 
 const element = document.querySelector("#greeting");
-element.innerText = "Hello, world!";
+element.innerText = "BLE-BEAN";
 
 const button = $('#scan');
 const sliderR = $('#sliderR');
@@ -32,7 +32,9 @@ sliderB.change(sliderChanges);
 var connectedBean;
 
 function doScan(){
- console.log('hello');
+  
+  $('#progress').show();
+ 
   var intervalId;
   
   Bean.discover(function(bean){
@@ -53,6 +55,9 @@ function doScan(){
   });
 
   bean.connectAndSetup(function(ready){
+    
+    $('#progress').hide();
+    $('#controls').show();
     
     console.log('bean ready', ready);
     
