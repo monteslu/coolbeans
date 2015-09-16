@@ -47,7 +47,7 @@
 	/* WEBPACK VAR INJECTION */(function(Buffer) {'use strict';
 
 	var Bean = __webpack_require__(5);
-	var $ = __webpack_require__(50);
+	var $ = __webpack_require__(51);
 
 	console.log('Bean', Bean);
 
@@ -1946,13 +1946,13 @@
 
 	var NobleDevice = __webpack_require__(6);
 
-	var Bean = __webpack_require__(32);
+	var Bean = __webpack_require__(33);
 
-	var ScratchOne = __webpack_require__(45);
-	var ScratchTwo = __webpack_require__(46);
-	var ScratchThree = __webpack_require__(47);
-	var ScratchFour = __webpack_require__(48);
-	var ScratchFive = __webpack_require__(49);
+	var ScratchOne = __webpack_require__(46);
+	var ScratchTwo = __webpack_require__(47);
+	var ScratchThree = __webpack_require__(48);
+	var ScratchFour = __webpack_require__(49);
+	var ScratchFive = __webpack_require__(50);
 
 	NobleDevice.Util.mixin(Bean, NobleDevice.BatteryService);
 	NobleDevice.Util.mixin(Bean, NobleDevice.DeviceInformationService);
@@ -1972,8 +1972,8 @@
 	var NobleDevice = __webpack_require__(7);
 
 	NobleDevice.Util = __webpack_require__(13);
-	NobleDevice.DeviceInformationService = __webpack_require__(30);
-	NobleDevice.BatteryService = __webpack_require__(31);
+	NobleDevice.DeviceInformationService = __webpack_require__(31);
+	NobleDevice.BatteryService = __webpack_require__(32);
 
 	module.exports = NobleDevice;
 
@@ -5486,7 +5486,7 @@
 	    return __webpack_require__(27);
 	  }
 
-	  return __webpack_require__(28);
+	  return __webpack_require__(29);
 	}
 
 	module.exports = resolveBindings;
@@ -5495,7 +5495,7 @@
 /* 27 */
 /***/ function(module, exports, __webpack_require__) {
 
-	'use strict';
+	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
 
 	var events = __webpack_require__(8);
 	var util = __webpack_require__(9);
@@ -5504,26 +5504,8 @@
 
 	var ble = navigator.bluetooth;
 
-	//temporary data until web api is finished:
-	var BEAN_SERVICES = ['f000ffc004514000b000000000000000', '1800', '1801', '180a', 'a495ff10c5b14b44b5121370f02d74de', 'a495ff20c5b14b44b5121370f02d74de', '180f'];
-
-	var BEAN_CHARACTERISTICS = {
-	  "1800": [{ properties: ['read'], uuid: '2a00' }, { properties: ['read'], uuid: '2a01' }, { properties: ['read', 'write'], uuid: '2a02' }, { properties: ['write'], uuid: '2a03' }, { properties: ['read'], uuid: '2a04' }],
-	  "1801": [{ properties: ['indicate'], uuid: '2a05' }],
-	  "a495ff10c5b14b44b5121370f02d74de": [{ properties: ['read', 'writeWithoutResponse', 'write', 'notify'],
-	    uuid: 'a495ff11c5b14b44b5121370f02d74de' }],
-	  "180f": [{ properties: ['read', 'notify'], uuid: '2a19' }],
-	  "f000ffc004514000b000000000000000": [{ properties: ['writeWithoutResponse', 'write', 'notify'],
-	    uuid: 'f000ffc104514000b000000000000000' }, { properties: ['writeWithoutResponse', 'write', 'notify'],
-	    uuid: 'f000ffc204514000b000000000000000' }],
-	  "180a": [{ properties: ['read'], uuid: '2a23' }, { properties: ['read'], uuid: '2a24' }, { properties: ['read'], uuid: '2a25' }, { properties: ['read'], uuid: '2a26' }, { properties: ['read'], uuid: '2a27' }, { properties: ['read'], uuid: '2a28' }, { properties: ['read'], uuid: '2a29' }, { properties: ['read'], uuid: '2a2a' }, { properties: ['read'], uuid: '2a50' }],
-	  "a495ff20c5b14b44b5121370f02d74de": [{ properties: ['read', 'write'],
-	    uuid: 'a495ff21c5b14b44b5121370f02d74de' }, { properties: ['read', 'write'],
-	    uuid: 'a495ff22c5b14b44b5121370f02d74de' }, { properties: ['read', 'write'],
-	    uuid: 'a495ff23c5b14b44b5121370f02d74de' }, { properties: ['read', 'write'],
-	    uuid: 'a495ff24c5b14b44b5121370f02d74de' }, { properties: ['read', 'write'],
-	    uuid: 'a495ff25c5b14b44b5121370f02d74de' }]
-	};
+	//stub data until web APIs are implemented.
+	var tempResponses = __webpack_require__(28);
 
 	function addDashes(uuid) {
 	  if (uuid && uuid.length === 32) {
@@ -5546,9 +5528,9 @@
 
 	  var self = this;
 
-	  setTimeout(function () {
+	  process.nextTick(function () {
 	    self.emit('stateChange', 'poweredOn');
-	  }, 50); //maybe just a next tick?
+	  });
 	};
 
 	util.inherits(NobleBindings, events.EventEmitter);
@@ -5593,6 +5575,7 @@
 	    }
 	  }, function (err) {
 	    console.log('err scanning', err);
+	    self.emit('connect', deviceUuid, error);
 	  });
 
 	  this.emit('scanStart');
@@ -5640,7 +5623,7 @@
 
 	  //TODO: need web api completed for this to work
 	  if (peripheral) {
-	    this.emit('servicesDiscover', deviceUuid, BEAN_SERVICES);
+	    this.emit('servicesDiscover', deviceUuid, tempResponses.BEAN_SERVICES);
 	  }
 	};
 
@@ -5656,7 +5639,7 @@
 
 	  //TODO need a web api to do this
 	  if (peripheral) {
-	    this.emit('characteristicsDiscover', deviceUuid, serviceUuid, BEAN_CHARACTERISTICS[serviceUuid] || []);
+	    this.emit('characteristicsDiscover', deviceUuid, serviceUuid, tempResponses.BEAN_CHARACTERISTICS[serviceUuid] || []);
 	  }
 	};
 
@@ -5763,9 +5746,38 @@
 	var nobleBindings = new NobleBindings();
 
 	module.exports = nobleBindings;
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(10)))
 
 /***/ },
 /* 28 */
+/***/ function(module, exports) {
+
+	'use strict';
+
+	//temporary data until web api is finished.  Based on LightBlue Bean services/characteristics.
+
+	module.exports.BEAN_SERVICES = ['f000ffc004514000b000000000000000', '1800', '1801', '180a', 'a495ff10c5b14b44b5121370f02d74de', 'a495ff20c5b14b44b5121370f02d74de', '180f'];
+
+	module.exports.BEAN_CHARACTERISTICS = {
+	  "1800": [{ properties: ['read'], uuid: '2a00' }, { properties: ['read'], uuid: '2a01' }, { properties: ['read', 'write'], uuid: '2a02' }, { properties: ['write'], uuid: '2a03' }, { properties: ['read'], uuid: '2a04' }],
+	  "1801": [{ properties: ['indicate'], uuid: '2a05' }],
+	  "a495ff10c5b14b44b5121370f02d74de": [{ properties: ['read', 'writeWithoutResponse', 'write', 'notify'],
+	    uuid: 'a495ff11c5b14b44b5121370f02d74de' }],
+	  "180f": [{ properties: ['read', 'notify'], uuid: '2a19' }],
+	  "f000ffc004514000b000000000000000": [{ properties: ['writeWithoutResponse', 'write', 'notify'],
+	    uuid: 'f000ffc104514000b000000000000000' }, { properties: ['writeWithoutResponse', 'write', 'notify'],
+	    uuid: 'f000ffc204514000b000000000000000' }],
+	  "180a": [{ properties: ['read'], uuid: '2a23' }, { properties: ['read'], uuid: '2a24' }, { properties: ['read'], uuid: '2a25' }, { properties: ['read'], uuid: '2a26' }, { properties: ['read'], uuid: '2a27' }, { properties: ['read'], uuid: '2a28' }, { properties: ['read'], uuid: '2a29' }, { properties: ['read'], uuid: '2a2a' }, { properties: ['read'], uuid: '2a50' }],
+	  "a495ff20c5b14b44b5121370f02d74de": [{ properties: ['read', 'write'],
+	    uuid: 'a495ff21c5b14b44b5121370f02d74de' }, { properties: ['read', 'write'],
+	    uuid: 'a495ff22c5b14b44b5121370f02d74de' }, { properties: ['read', 'write'],
+	    uuid: 'a495ff23c5b14b44b5121370f02d74de' }, { properties: ['read', 'write'],
+	    uuid: 'a495ff24c5b14b44b5121370f02d74de' }, { properties: ['read', 'write'],
+	    uuid: 'a495ff25c5b14b44b5121370f02d74de' }]
+	};
+
+/***/ },
+/* 29 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(process, Buffer) {'use strict';
@@ -5774,7 +5786,7 @@
 	var util = __webpack_require__(9);
 
 	var debug = __webpack_require__(16)('bindings');
-	var WebSocket = __webpack_require__(29);
+	var WebSocket = __webpack_require__(30);
 
 	var NobleBindings = function NobleBindings() {
 	  var port = 0xB1e;
@@ -6084,7 +6096,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(10), __webpack_require__(1).Buffer))
 
 /***/ },
-/* 29 */
+/* 30 */
 /***/ function(module, exports) {
 
 	
@@ -6133,7 +6145,7 @@
 
 
 /***/ },
-/* 30 */
+/* 31 */
 /***/ function(module, exports) {
 
 	var DEVICE_INFORMATION_UUID         = '180a';
@@ -6188,7 +6200,7 @@
 
 
 /***/ },
-/* 31 */
+/* 32 */
 /***/ function(module, exports) {
 
 	var BATTERY_UUID                    = '180f';
@@ -6205,7 +6217,7 @@
 
 
 /***/ },
-/* 32 */
+/* 33 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {/*jslint node: true */
@@ -6215,8 +6227,8 @@
 
 	var EventEmitter = __webpack_require__(8).EventEmitter;
 	var util = __webpack_require__(9);
-	var crc = __webpack_require__(33);
-	var commands = __webpack_require__(44);
+	var crc = __webpack_require__(34);
+	var commands = __webpack_require__(45);
 
 	var SERIAL_UUID = 'a495ff10c5b14b44b5121370f02d74de';
 	var BEAN_SERIAL_CHAR_UUID = 'a495ff11c5b14b44b5121370f02d74de';
@@ -6360,21 +6372,21 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 33 */
+/* 34 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Generated by CoffeeScript 1.7.1
 	var item, name, _fn, _ref;
 
 	module.exports = {
-	  CRC1: __webpack_require__(34).CRC1,
-	  CRC8: __webpack_require__(37).CRC8,
-	  CRC81Wire: __webpack_require__(38).CRC81Wire,
-	  CRC16: __webpack_require__(39).CRC16,
-	  CRC16CCITT: __webpack_require__(40).CRC16CCITT,
-	  CRC16Modbus: __webpack_require__(41).CRC16Modbus,
-	  CRC24: __webpack_require__(42).CRC24,
-	  CRC32: __webpack_require__(43).CRC32
+	  CRC1: __webpack_require__(35).CRC1,
+	  CRC8: __webpack_require__(38).CRC8,
+	  CRC81Wire: __webpack_require__(39).CRC81Wire,
+	  CRC16: __webpack_require__(40).CRC16,
+	  CRC16CCITT: __webpack_require__(41).CRC16CCITT,
+	  CRC16Modbus: __webpack_require__(42).CRC16Modbus,
+	  CRC24: __webpack_require__(43).CRC24,
+	  CRC32: __webpack_require__(44).CRC32
 	};
 
 	_ref = module.exports;
@@ -6390,7 +6402,7 @@
 
 
 /***/ },
-/* 34 */
+/* 35 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Generated by CoffeeScript 1.7.1
@@ -6398,9 +6410,9 @@
 	  __hasProp = {}.hasOwnProperty,
 	  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-	CRC = __webpack_require__(35);
+	CRC = __webpack_require__(36);
 
-	hex = __webpack_require__(36);
+	hex = __webpack_require__(37);
 
 	module.exports.CRC1 = (function(_super) {
 	  __extends(_Class, _super);
@@ -6433,13 +6445,13 @@
 
 
 /***/ },
-/* 35 */
+/* 36 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {// Generated by CoffeeScript 1.7.1
 	var CRC, hex;
 
-	hex = __webpack_require__(36);
+	hex = __webpack_require__(37);
 
 	module.exports = CRC = (function() {
 	  CRC.prototype.INIT_CRC = 0x00;
@@ -6512,7 +6524,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 36 */
+/* 37 */
 /***/ function(module, exports) {
 
 	// Generated by CoffeeScript 1.7.1
@@ -6527,7 +6539,7 @@
 
 
 /***/ },
-/* 37 */
+/* 38 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Generated by CoffeeScript 1.7.1
@@ -6535,9 +6547,9 @@
 	  __hasProp = {}.hasOwnProperty,
 	  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-	CRC = __webpack_require__(35);
+	CRC = __webpack_require__(36);
 
-	hex = __webpack_require__(36);
+	hex = __webpack_require__(37);
 
 	module.exports.CRC8 = (function(_super) {
 	  __extends(_Class, _super);
@@ -6571,7 +6583,7 @@
 
 
 /***/ },
-/* 38 */
+/* 39 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Generated by CoffeeScript 1.7.1
@@ -6579,9 +6591,9 @@
 	  __hasProp = {}.hasOwnProperty,
 	  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-	CRC = __webpack_require__(35);
+	CRC = __webpack_require__(36);
 
-	hex = __webpack_require__(36);
+	hex = __webpack_require__(37);
 
 	module.exports.CRC81Wire = (function(_super) {
 	  __extends(_Class, _super);
@@ -6615,7 +6627,7 @@
 
 
 /***/ },
-/* 39 */
+/* 40 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Generated by CoffeeScript 1.7.1
@@ -6623,9 +6635,9 @@
 	  __hasProp = {}.hasOwnProperty,
 	  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-	CRC = __webpack_require__(35);
+	CRC = __webpack_require__(36);
 
-	hex = __webpack_require__(36);
+	hex = __webpack_require__(37);
 
 	module.exports.CRC16 = (function(_super) {
 	  __extends(_Class, _super);
@@ -6659,7 +6671,7 @@
 
 
 /***/ },
-/* 40 */
+/* 41 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Generated by CoffeeScript 1.7.1
@@ -6667,9 +6679,9 @@
 	  __hasProp = {}.hasOwnProperty,
 	  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-	CRC = __webpack_require__(35);
+	CRC = __webpack_require__(36);
 
-	hex = __webpack_require__(36);
+	hex = __webpack_require__(37);
 
 	module.exports.CRC16CCITT = (function(_super) {
 	  __extends(_Class, _super);
@@ -6703,7 +6715,7 @@
 
 
 /***/ },
-/* 41 */
+/* 42 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Generated by CoffeeScript 1.7.1
@@ -6711,9 +6723,9 @@
 	  __hasProp = {}.hasOwnProperty,
 	  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-	CRC = __webpack_require__(35);
+	CRC = __webpack_require__(36);
 
-	hex = __webpack_require__(36);
+	hex = __webpack_require__(37);
 
 	module.exports.CRC16Modbus = (function(_super) {
 	  __extends(_Class, _super);
@@ -6747,7 +6759,7 @@
 
 
 /***/ },
-/* 42 */
+/* 43 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Generated by CoffeeScript 1.7.1
@@ -6755,9 +6767,9 @@
 	  __hasProp = {}.hasOwnProperty,
 	  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-	CRC = __webpack_require__(35);
+	CRC = __webpack_require__(36);
 
-	hex = __webpack_require__(36);
+	hex = __webpack_require__(37);
 
 	module.exports.CRC24 = (function(_super) {
 	  __extends(_Class, _super);
@@ -6791,7 +6803,7 @@
 
 
 /***/ },
-/* 43 */
+/* 44 */
 /***/ function(module, exports, __webpack_require__) {
 
 	// Generated by CoffeeScript 1.7.1
@@ -6799,9 +6811,9 @@
 	  __hasProp = {}.hasOwnProperty,
 	  __extends = function(child, parent) { for (var key in parent) { if (__hasProp.call(parent, key)) child[key] = parent[key]; } function ctor() { this.constructor = child; } ctor.prototype = parent.prototype; child.prototype = new ctor(); child.__super__ = parent.prototype; return child; };
 
-	CRC = __webpack_require__(35);
+	CRC = __webpack_require__(36);
 
-	hex = __webpack_require__(36);
+	hex = __webpack_require__(37);
 
 	module.exports.CRC32 = (function(_super) {
 	  __extends(_Class, _super);
@@ -6837,7 +6849,7 @@
 
 
 /***/ },
-/* 44 */
+/* 45 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {/*jslint node: true */
@@ -6876,7 +6888,7 @@
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
-/* 45 */
+/* 46 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -6905,7 +6917,7 @@
 	module.exports = ScratchOne;
 
 /***/ },
-/* 46 */
+/* 47 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -6934,7 +6946,7 @@
 	module.exports = ScratchTwo;
 
 /***/ },
-/* 47 */
+/* 48 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -6963,7 +6975,7 @@
 	module.exports = ScratchThree;
 
 /***/ },
-/* 48 */
+/* 49 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -6992,7 +7004,7 @@
 	module.exports = ScratchFour;
 
 /***/ },
-/* 49 */
+/* 50 */
 /***/ function(module, exports) {
 
 	'use strict';
@@ -7021,7 +7033,7 @@
 	module.exports = ScratchFive;
 
 /***/ },
-/* 50 */
+/* 51 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!
