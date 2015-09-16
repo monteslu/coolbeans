@@ -142,12 +142,13 @@
 /* 1 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {/*!
+	/* WEBPACK VAR INJECTION */(function(Buffer, global) {/*!
 	 * The buffer module from node.js, for the browser.
 	 *
 	 * @author   Feross Aboukhadijeh <feross@feross.org> <http://feross.org>
 	 * @license  MIT
 	 */
+	/* eslint-disable no-proto */
 
 	var base64 = __webpack_require__(2)
 	var ieee754 = __webpack_require__(3)
@@ -187,20 +188,22 @@
 	 * We detect these buggy browsers and set `Buffer.TYPED_ARRAY_SUPPORT` to `false` so they
 	 * get the Object implementation, which is slower but behaves correctly.
 	 */
-	Buffer.TYPED_ARRAY_SUPPORT = (function () {
-	  function Bar () {}
-	  try {
-	    var arr = new Uint8Array(1)
-	    arr.foo = function () { return 42 }
-	    arr.constructor = Bar
-	    return arr.foo() === 42 && // typed array instances can be augmented
-	        arr.constructor === Bar && // constructor can be set
-	        typeof arr.subarray === 'function' && // chrome 9-10 lack `subarray`
-	        arr.subarray(1, 1).byteLength === 0 // ie10 has broken `subarray`
-	  } catch (e) {
-	    return false
-	  }
-	})()
+	Buffer.TYPED_ARRAY_SUPPORT = global.TYPED_ARRAY_SUPPORT !== undefined
+	  ? global.TYPED_ARRAY_SUPPORT
+	  : (function () {
+	      function Bar () {}
+	      try {
+	        var arr = new Uint8Array(1)
+	        arr.foo = function () { return 42 }
+	        arr.constructor = Bar
+	        return arr.foo() === 42 && // typed array instances can be augmented
+	            arr.constructor === Bar && // constructor can be set
+	            typeof arr.subarray === 'function' && // chrome 9-10 lack `subarray`
+	            arr.subarray(1, 1).byteLength === 0 // ie10 has broken `subarray`
+	      } catch (e) {
+	        return false
+	      }
+	    })()
 
 	function kMaxLength () {
 	  return Buffer.TYPED_ARRAY_SUPPORT
@@ -356,10 +359,16 @@
 	  return that
 	}
 
+	if (Buffer.TYPED_ARRAY_SUPPORT) {
+	  Buffer.prototype.__proto__ = Uint8Array.prototype
+	  Buffer.__proto__ = Uint8Array
+	}
+
 	function allocate (that, length) {
 	  if (Buffer.TYPED_ARRAY_SUPPORT) {
 	    // Return an augmented `Uint8Array` instance, for best performance
 	    that = Buffer._augment(new Uint8Array(length))
+	    that.__proto__ = Buffer.prototype
 	  } else {
 	    // Fallback: Return an object instance of the Buffer class
 	    that.length = length
@@ -1676,7 +1685,7 @@
 	  return i
 	}
 
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
+	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer, (function() { return this; }())))
 
 /***/ },
 /* 2 */
@@ -1953,6 +1962,7 @@
 	var ScratchThree = __webpack_require__(48);
 	var ScratchFour = __webpack_require__(49);
 	var ScratchFive = __webpack_require__(50);
+
 
 	NobleDevice.Util.mixin(Bean, NobleDevice.BatteryService);
 	NobleDevice.Util.mixin(Bean, NobleDevice.DeviceInformationService);
@@ -3146,7 +3156,9 @@
 	        currentQueue = queue;
 	        queue = [];
 	        while (++queueIndex < len) {
-	            currentQueue[queueIndex].run();
+	            if (currentQueue) {
+	                currentQueue[queueIndex].run();
+	            }
 	        }
 	        queueIndex = -1;
 	        len = queue.length;
@@ -3198,7 +3210,6 @@
 	    throw new Error('process.binding is not supported');
 	};
 
-	// TODO(shtylman)
 	process.cwd = function () { return '/' };
 	process.chdir = function (dir) {
 	    throw new Error('process.chdir is not supported');
@@ -3384,17 +3395,14 @@
 /* 14 */
 /***/ function(module, exports, __webpack_require__) {
 
-	'use strict';
-
 	var Noble = __webpack_require__(15);
 
 	module.exports = new Noble();
 
+
 /***/ },
 /* 15 */
 /***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
 
 	var debug = __webpack_require__(16)('noble');
 
@@ -3438,16 +3446,16 @@
 	  this._bindings.on('handleWrite', this.onHandleWrite.bind(this));
 	  this._bindings.on('handleNotify', this.onHandleNotify.bind(this));
 
-	  this.on('warning', (function (message) {
+	  this.on('warning', function(message) {
 	    if (this.listeners('warning').length === 1) {
 	      console.warn('noble: ' + message);
 	    }
-	  }).bind(this));
+	  }.bind(this));
 	}
 
 	util.inherits(Noble, events.EventEmitter);
 
-	Noble.prototype.onStateChange = function (state) {
+	Noble.prototype.onStateChange = function(state) {
 	  debug('stateChange ' + state);
 
 	  this.state = state;
@@ -3455,7 +3463,7 @@
 	  this.emit('stateChange', state);
 	};
 
-	Noble.prototype.startScanning = function (serviceUuids, allowDuplicates, callback) {
+	Noble.prototype.startScanning = function(serviceUuids, allowDuplicates, callback) {
 	  if (this.state !== 'poweredOn') {
 	    var error = new Error('Could not start scanning, state is ' + this.state + ' (not poweredOn)');
 
@@ -3476,24 +3484,24 @@
 	  }
 	};
 
-	Noble.prototype.onScanStart = function () {
+	Noble.prototype.onScanStart = function() {
 	  debug('scanStart');
 	  this.emit('scanStart');
 	};
 
-	Noble.prototype.stopScanning = function (callback) {
+	Noble.prototype.stopScanning = function(callback) {
 	  if (callback) {
 	    this.once('scanStop', callback);
 	  }
 	  this._bindings.stopScanning();
 	};
 
-	Noble.prototype.onScanStop = function () {
+	Noble.prototype.onScanStop = function() {
 	  debug('scanStop');
 	  this.emit('scanStop');
 	};
 
-	Noble.prototype.onDiscover = function (uuid, address, addressType, advertisement, rssi) {
+	Noble.prototype.onDiscover = function(uuid, address, addressType, advertisement, rssi) {
 	  var peripheral = this._peripherals[uuid];
 
 	  if (!peripheral) {
@@ -3514,7 +3522,7 @@
 	    peripheral.rssi = rssi;
 	  }
 
-	  var previouslyDiscoverd = this._discoveredPeripheralUUids.indexOf(uuid) !== -1;
+	  var previouslyDiscoverd = (this._discoveredPeripheralUUids.indexOf(uuid) !== -1);
 
 	  if (!previouslyDiscoverd) {
 	    this._discoveredPeripheralUUids.push(uuid);
@@ -3525,11 +3533,11 @@
 	  }
 	};
 
-	Noble.prototype.connect = function (peripheralUuid) {
+	Noble.prototype.connect = function(peripheralUuid) {
 	  this._bindings.connect(peripheralUuid);
 	};
 
-	Noble.prototype.onConnect = function (peripheralUuid, error) {
+	Noble.prototype.onConnect = function(peripheralUuid, error) {
 	  var peripheral = this._peripherals[peripheralUuid];
 
 	  if (peripheral) {
@@ -3540,11 +3548,11 @@
 	  }
 	};
 
-	Noble.prototype.disconnect = function (peripheralUuid) {
+	Noble.prototype.disconnect = function(peripheralUuid) {
 	  this._bindings.disconnect(peripheralUuid);
 	};
 
-	Noble.prototype.onDisconnect = function (peripheralUuid) {
+	Noble.prototype.onDisconnect = function(peripheralUuid) {
 	  var peripheral = this._peripherals[peripheralUuid];
 
 	  if (peripheral) {
@@ -3555,11 +3563,11 @@
 	  }
 	};
 
-	Noble.prototype.updateRssi = function (peripheralUuid) {
+	Noble.prototype.updateRssi = function(peripheralUuid) {
 	  this._bindings.updateRssi(peripheralUuid);
 	};
 
-	Noble.prototype.onRssiUpdate = function (peripheralUuid, rssi) {
+	Noble.prototype.onRssiUpdate = function(peripheralUuid, rssi) {
 	  var peripheral = this._peripherals[peripheralUuid];
 
 	  if (peripheral) {
@@ -3571,11 +3579,11 @@
 	  }
 	};
 
-	Noble.prototype.discoverServices = function (peripheralUuid, uuids) {
+	Noble.prototype.discoverServices = function(peripheralUuid, uuids) {
 	  this._bindings.discoverServices(peripheralUuid, uuids);
 	};
 
-	Noble.prototype.onServicesDiscover = function (peripheralUuid, serviceUuids) {
+	Noble.prototype.onServicesDiscover = function(peripheralUuid, serviceUuids) {
 	  var peripheral = this._peripherals[peripheralUuid];
 
 	  if (peripheral) {
@@ -3600,11 +3608,11 @@
 	  }
 	};
 
-	Noble.prototype.discoverIncludedServices = function (peripheralUuid, serviceUuid, serviceUuids) {
+	Noble.prototype.discoverIncludedServices = function(peripheralUuid, serviceUuid, serviceUuids) {
 	  this._bindings.discoverIncludedServices(peripheralUuid, serviceUuid, serviceUuids);
 	};
 
-	Noble.prototype.onIncludedServicesDiscover = function (peripheralUuid, serviceUuid, includedServiceUuids) {
+	Noble.prototype.onIncludedServicesDiscover = function(peripheralUuid, serviceUuid, includedServiceUuids) {
 	  var service = this._services[peripheralUuid][serviceUuid];
 
 	  if (service) {
@@ -3616,11 +3624,11 @@
 	  }
 	};
 
-	Noble.prototype.discoverCharacteristics = function (peripheralUuid, serviceUuid, characteristicUuids) {
+	Noble.prototype.discoverCharacteristics = function(peripheralUuid, serviceUuid, characteristicUuids) {
 	  this._bindings.discoverCharacteristics(peripheralUuid, serviceUuid, characteristicUuids);
 	};
 
-	Noble.prototype.onCharacteristicsDiscover = function (peripheralUuid, serviceUuid, characteristics) {
+	Noble.prototype.onCharacteristicsDiscover = function(peripheralUuid, serviceUuid, characteristics) {
 	  var service = this._services[peripheralUuid][serviceUuid];
 
 	  if (service) {
@@ -3629,7 +3637,13 @@
 	    for (var i = 0; i < characteristics.length; i++) {
 	      var characteristicUuid = characteristics[i].uuid;
 
-	      var characteristic = new Characteristic(this, peripheralUuid, serviceUuid, characteristicUuid, characteristics[i].properties);
+	      var characteristic = new Characteristic(
+	                                this,
+	                                peripheralUuid,
+	                                serviceUuid,
+	                                characteristicUuid,
+	                                characteristics[i].properties
+	                            );
 
 	      this._characteristics[peripheralUuid][serviceUuid][characteristicUuid] = characteristic;
 	      this._descriptors[peripheralUuid][serviceUuid][characteristicUuid] = {};
@@ -3645,11 +3659,11 @@
 	  }
 	};
 
-	Noble.prototype.read = function (peripheralUuid, serviceUuid, characteristicUuid) {
-	  this._bindings.read(peripheralUuid, serviceUuid, characteristicUuid);
+	Noble.prototype.read = function(peripheralUuid, serviceUuid, characteristicUuid) {
+	   this._bindings.read(peripheralUuid, serviceUuid, characteristicUuid);
 	};
 
-	Noble.prototype.onRead = function (peripheralUuid, serviceUuid, characteristicUuid, data, isNotification) {
+	Noble.prototype.onRead = function(peripheralUuid, serviceUuid, characteristicUuid, data, isNotification) {
 	  var characteristic = this._characteristics[peripheralUuid][serviceUuid][characteristicUuid];
 
 	  if (characteristic) {
@@ -3657,15 +3671,15 @@
 
 	    characteristic.emit('read', data, isNotification); // for backwards compatbility
 	  } else {
-	      this.emit('warning', 'unknown peripheral ' + peripheralUuid + ', ' + serviceUuid + ', ' + characteristicUuid + ' read!');
-	    }
+	    this.emit('warning', 'unknown peripheral ' + peripheralUuid + ', ' + serviceUuid + ', ' + characteristicUuid + ' read!');
+	  }
 	};
 
-	Noble.prototype.write = function (peripheralUuid, serviceUuid, characteristicUuid, data, withoutResponse) {
-	  this._bindings.write(peripheralUuid, serviceUuid, characteristicUuid, data, withoutResponse);
+	Noble.prototype.write = function(peripheralUuid, serviceUuid, characteristicUuid, data, withoutResponse) {
+	   this._bindings.write(peripheralUuid, serviceUuid, characteristicUuid, data, withoutResponse);
 	};
 
-	Noble.prototype.onWrite = function (peripheralUuid, serviceUuid, characteristicUuid) {
+	Noble.prototype.onWrite = function(peripheralUuid, serviceUuid, characteristicUuid) {
 	  var characteristic = this._characteristics[peripheralUuid][serviceUuid][characteristicUuid];
 
 	  if (characteristic) {
@@ -3675,11 +3689,11 @@
 	  }
 	};
 
-	Noble.prototype.broadcast = function (peripheralUuid, serviceUuid, characteristicUuid, broadcast) {
-	  this._bindings.broadcast(peripheralUuid, serviceUuid, characteristicUuid, broadcast);
+	Noble.prototype.broadcast = function(peripheralUuid, serviceUuid, characteristicUuid, broadcast) {
+	   this._bindings.broadcast(peripheralUuid, serviceUuid, characteristicUuid, broadcast);
 	};
 
-	Noble.prototype.onBroadcast = function (peripheralUuid, serviceUuid, characteristicUuid, state) {
+	Noble.prototype.onBroadcast = function(peripheralUuid, serviceUuid, characteristicUuid, state) {
 	  var characteristic = this._characteristics[peripheralUuid][serviceUuid][characteristicUuid];
 
 	  if (characteristic) {
@@ -3689,11 +3703,11 @@
 	  }
 	};
 
-	Noble.prototype.notify = function (peripheralUuid, serviceUuid, characteristicUuid, notify) {
-	  this._bindings.notify(peripheralUuid, serviceUuid, characteristicUuid, notify);
+	Noble.prototype.notify = function(peripheralUuid, serviceUuid, characteristicUuid, notify) {
+	   this._bindings.notify(peripheralUuid, serviceUuid, characteristicUuid, notify);
 	};
 
-	Noble.prototype.onNotify = function (peripheralUuid, serviceUuid, characteristicUuid, state) {
+	Noble.prototype.onNotify = function(peripheralUuid, serviceUuid, characteristicUuid, state) {
 	  var characteristic = this._characteristics[peripheralUuid][serviceUuid][characteristicUuid];
 
 	  if (characteristic) {
@@ -3703,11 +3717,11 @@
 	  }
 	};
 
-	Noble.prototype.discoverDescriptors = function (peripheralUuid, serviceUuid, characteristicUuid) {
+	Noble.prototype.discoverDescriptors = function(peripheralUuid, serviceUuid, characteristicUuid) {
 	  this._bindings.discoverDescriptors(peripheralUuid, serviceUuid, characteristicUuid);
 	};
 
-	Noble.prototype.onDescriptorsDiscover = function (peripheralUuid, serviceUuid, characteristicUuid, descriptors) {
+	Noble.prototype.onDescriptorsDiscover = function(peripheralUuid, serviceUuid, characteristicUuid, descriptors) {
 	  var characteristic = this._characteristics[peripheralUuid][serviceUuid][characteristicUuid];
 
 	  if (characteristic) {
@@ -3716,7 +3730,13 @@
 	    for (var i = 0; i < descriptors.length; i++) {
 	      var descriptorUuid = descriptors[i];
 
-	      var descriptor = new Descriptor(this, peripheralUuid, serviceUuid, characteristicUuid, descriptorUuid);
+	      var descriptor = new Descriptor(
+	                            this,
+	                            peripheralUuid,
+	                            serviceUuid,
+	                            characteristicUuid,
+	                            descriptorUuid
+	                        );
 
 	      this._descriptors[peripheralUuid][serviceUuid][characteristicUuid][descriptorUuid] = descriptor;
 
@@ -3731,11 +3751,11 @@
 	  }
 	};
 
-	Noble.prototype.readValue = function (peripheralUuid, serviceUuid, characteristicUuid, descriptorUuid) {
+	Noble.prototype.readValue = function(peripheralUuid, serviceUuid, characteristicUuid, descriptorUuid) {
 	  this._bindings.readValue(peripheralUuid, serviceUuid, characteristicUuid, descriptorUuid);
 	};
 
-	Noble.prototype.onValueRead = function (peripheralUuid, serviceUuid, characteristicUuid, descriptorUuid, data) {
+	Noble.prototype.onValueRead = function(peripheralUuid, serviceUuid, characteristicUuid, descriptorUuid, data) {
 	  var descriptor = this._descriptors[peripheralUuid][serviceUuid][characteristicUuid][descriptorUuid];
 
 	  if (descriptor) {
@@ -3745,11 +3765,11 @@
 	  }
 	};
 
-	Noble.prototype.writeValue = function (peripheralUuid, serviceUuid, characteristicUuid, descriptorUuid, data) {
+	Noble.prototype.writeValue = function(peripheralUuid, serviceUuid, characteristicUuid, descriptorUuid, data) {
 	  this._bindings.writeValue(peripheralUuid, serviceUuid, characteristicUuid, descriptorUuid, data);
 	};
 
-	Noble.prototype.onValueWrite = function (peripheralUuid, serviceUuid, characteristicUuid, descriptorUuid) {
+	Noble.prototype.onValueWrite = function(peripheralUuid, serviceUuid, characteristicUuid, descriptorUuid) {
 	  var descriptor = this._descriptors[peripheralUuid][serviceUuid][characteristicUuid][descriptorUuid];
 
 	  if (descriptor) {
@@ -3759,11 +3779,11 @@
 	  }
 	};
 
-	Noble.prototype.readHandle = function (peripheralUuid, handle) {
+	Noble.prototype.readHandle = function(peripheralUuid, handle) {
 	  this._bindings.readHandle(peripheralUuid, handle);
 	};
 
-	Noble.prototype.onHandleRead = function (peripheralUuid, handle, data) {
+	Noble.prototype.onHandleRead = function(peripheralUuid, handle, data) {
 	  var peripheral = this._peripherals[peripheralUuid];
 
 	  if (peripheral) {
@@ -3773,11 +3793,11 @@
 	  }
 	};
 
-	Noble.prototype.writeHandle = function (peripheralUuid, handle, data, withoutResponse) {
+	Noble.prototype.writeHandle = function(peripheralUuid, handle, data, withoutResponse) {
 	  this._bindings.writeHandle(peripheralUuid, handle, data, withoutResponse);
 	};
 
-	Noble.prototype.onHandleWrite = function (peripheralUuid, handle) {
+	Noble.prototype.onHandleWrite = function(peripheralUuid, handle) {
 	  var peripheral = this._peripherals[peripheralUuid];
 
 	  if (peripheral) {
@@ -3787,7 +3807,7 @@
 	  }
 	};
 
-	Noble.prototype.onHandleNotify = function (peripheralUuid, handle, data) {
+	Noble.prototype.onHandleNotify = function(peripheralUuid, handle, data) {
 	  var peripheral = this._peripherals[peripheralUuid];
 
 	  if (peripheral) {
@@ -3798,6 +3818,7 @@
 	};
 
 	module.exports = Noble;
+
 
 /***/ },
 /* 16 */
@@ -4312,8 +4333,6 @@
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(Buffer) {/*jshint loopfunc: true */
-	'use strict';
-
 	var debug = __webpack_require__(16)('peripheral');
 
 	var events = __webpack_require__(8);
@@ -4334,7 +4353,7 @@
 
 	util.inherits(Peripheral, events.EventEmitter);
 
-	Peripheral.prototype.toString = function () {
+	Peripheral.prototype.toString = function() {
 	  return JSON.stringify({
 	    id: this.id,
 	    address: this.address,
@@ -4344,9 +4363,9 @@
 	  });
 	};
 
-	Peripheral.prototype.connect = function (callback) {
+	Peripheral.prototype.connect = function(callback) {
 	  if (callback) {
-	    this.once('connect', function (error) {
+	    this.once('connect', function(error) {
 	      callback(error);
 	    });
 	  }
@@ -4359,9 +4378,9 @@
 	  }
 	};
 
-	Peripheral.prototype.disconnect = function (callback) {
+	Peripheral.prototype.disconnect = function(callback) {
 	  if (callback) {
-	    this.once('disconnect', function () {
+	    this.once('disconnect', function() {
 	      callback(null);
 	    });
 	  }
@@ -4369,9 +4388,9 @@
 	  this._noble.disconnect(this.id);
 	};
 
-	Peripheral.prototype.updateRssi = function (callback) {
+	Peripheral.prototype.updateRssi = function(callback) {
 	  if (callback) {
-	    this.once('rssiUpdate', function (rssi) {
+	    this.once('rssiUpdate', function(rssi) {
 	      callback(null, rssi);
 	    });
 	  }
@@ -4379,9 +4398,9 @@
 	  this._noble.updateRssi(this.id);
 	};
 
-	Peripheral.prototype.discoverServices = function (uuids, callback) {
+	Peripheral.prototype.discoverServices = function(uuids, callback) {
 	  if (callback) {
-	    this.once('servicesDiscover', function (services) {
+	    this.once('servicesDiscover', function(services) {
 	      callback(null, services);
 	    });
 	  }
@@ -4389,15 +4408,15 @@
 	  this._noble.discoverServices(this.id, uuids);
 	};
 
-	Peripheral.prototype.discoverSomeServicesAndCharacteristics = function (serviceUuids, characteristicsUuids, callback) {
-	  this.discoverServices(serviceUuids, (function (err, services) {
+	Peripheral.prototype.discoverSomeServicesAndCharacteristics = function(serviceUuids, characteristicsUuids, callback) {
+	  this.discoverServices(serviceUuids, function(err, services) {
 	    var numDiscovered = 0;
 	    var allCharacteristics = [];
 
 	    for (var i in services) {
 	      var service = services[i];
 
-	      service.discoverCharacteristics(characteristicsUuids, (function (error, characteristics) {
+	      service.discoverCharacteristics(characteristicsUuids, function(error, characteristics) {
 	        numDiscovered++;
 
 	        if (error === null) {
@@ -4413,18 +4432,18 @@
 	            callback(null, services, allCharacteristics);
 	          }
 	        }
-	      }).bind(this));
+	      }.bind(this));
 	    }
-	  }).bind(this));
+	  }.bind(this));
 	};
 
-	Peripheral.prototype.discoverAllServicesAndCharacteristics = function (callback) {
+	Peripheral.prototype.discoverAllServicesAndCharacteristics = function(callback) {
 	  this.discoverSomeServicesAndCharacteristics([], [], callback);
 	};
 
-	Peripheral.prototype.readHandle = function (handle, callback) {
+	Peripheral.prototype.readHandle = function(handle, callback) {
 	  if (callback) {
-	    this.once('handleRead' + handle, function (data) {
+	    this.once('handleRead' + handle, function(data) {
 	      callback(null, data);
 	    });
 	  }
@@ -4432,13 +4451,13 @@
 	  this._noble.readHandle(this.id, handle);
 	};
 
-	Peripheral.prototype.writeHandle = function (handle, data, withoutResponse, callback) {
+	Peripheral.prototype.writeHandle = function(handle, data, withoutResponse, callback) {
 	  if (!(data instanceof Buffer)) {
 	    throw new Error('data must be a Buffer');
 	  }
 
 	  if (callback) {
-	    this.once('handleWrite' + handle, function () {
+	    this.once('handleWrite' + handle, function() {
 	      callback(null);
 	    });
 	  }
@@ -4447,13 +4466,12 @@
 	};
 
 	module.exports = Peripheral;
+
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
 /* 20 */
 /***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
 
 	var debug = __webpack_require__(16)('service');
 
@@ -4481,7 +4499,7 @@
 
 	util.inherits(Service, events.EventEmitter);
 
-	Service.prototype.toString = function () {
+	Service.prototype.toString = function() {
 	  return JSON.stringify({
 	    uuid: this.uuid,
 	    name: this.name,
@@ -4490,27 +4508,36 @@
 	  });
 	};
 
-	Service.prototype.discoverIncludedServices = function (serviceUuids, callback) {
+	Service.prototype.discoverIncludedServices = function(serviceUuids, callback) {
 	  if (callback) {
-	    this.once('includedServicesDiscover', function (includedServiceUuids) {
+	    this.once('includedServicesDiscover', function(includedServiceUuids) {
 	      callback(null, includedServiceUuids);
 	    });
 	  }
 
-	  this._noble.discoverIncludedServices(this._peripheralId, this.uuid, serviceUuids);
+	  this._noble.discoverIncludedServices(
+	    this._peripheralId,
+	    this.uuid,
+	    serviceUuids
+	  );
 	};
 
-	Service.prototype.discoverCharacteristics = function (characteristicUuids, callback) {
+	Service.prototype.discoverCharacteristics = function(characteristicUuids, callback) {
 	  if (callback) {
-	    this.once('characteristicsDiscover', function (characteristics) {
+	    this.once('characteristicsDiscover', function(characteristics) {
 	      callback(null, characteristics);
 	    });
 	  }
 
-	  this._noble.discoverCharacteristics(this._peripheralId, this.uuid, characteristicUuids);
+	  this._noble.discoverCharacteristics(
+	    this._peripheralId,
+	    this.uuid,
+	    characteristicUuids
+	  );
 	};
 
 	module.exports = Service;
+
 
 /***/ },
 /* 21 */
@@ -4643,9 +4670,7 @@
 /* 22 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(process, Buffer) {'use strict';
-
-	var debug = __webpack_require__(16)('characteristic');
+	/* WEBPACK VAR INJECTION */(function(process, Buffer) {var debug = __webpack_require__(16)('characteristic');
 
 	var events = __webpack_require__(8);
 	var util = __webpack_require__(9);
@@ -4672,7 +4697,7 @@
 
 	util.inherits(Characteristic, events.EventEmitter);
 
-	Characteristic.prototype.toString = function () {
+	Characteristic.prototype.toString = function() {
 	  return JSON.stringify({
 	    uuid: this.uuid,
 	    name: this.name,
@@ -4681,17 +4706,21 @@
 	  });
 	};
 
-	Characteristic.prototype.read = function (callback) {
+	Characteristic.prototype.read = function(callback) {
 	  if (callback) {
-	    this.once('read', function (data) {
+	    this.once('read', function(data) {
 	      callback(null, data);
 	    });
 	  }
 
-	  this._noble.read(this._peripheralId, this._serviceUuid, this.uuid);
+	  this._noble.read(
+	    this._peripheralId,
+	    this._serviceUuid,
+	    this.uuid
+	  );
 	};
 
-	Characteristic.prototype.write = function (data, withoutResponse, callback) {
+	Characteristic.prototype.write = function(data, withoutResponse, callback) {
 	  if (process.title !== 'browser') {
 	    if (!(data instanceof Buffer)) {
 	      throw new Error('data must be a Buffer');
@@ -4699,45 +4728,66 @@
 	  }
 
 	  if (callback) {
-	    this.once('write', function () {
+	    this.once('write', function() {
 	      callback(null);
 	    });
 	  }
 
-	  this._noble.write(this._peripheralId, this._serviceUuid, this.uuid, data, withoutResponse);
+	  this._noble.write(
+	    this._peripheralId,
+	    this._serviceUuid,
+	    this.uuid,
+	    data,
+	    withoutResponse
+	  );
 	};
 
-	Characteristic.prototype.broadcast = function (broadcast, callback) {
+	Characteristic.prototype.broadcast = function(broadcast, callback) {
 	  if (callback) {
-	    this.once('broadcast', function () {
+	    this.once('broadcast', function() {
 	      callback(null);
 	    });
 	  }
 
-	  this._noble.broadcast(this._peripheralId, this._serviceUuid, this.uuid, broadcast);
+	  this._noble.broadcast(
+	    this._peripheralId,
+	    this._serviceUuid,
+	    this.uuid,
+	    broadcast
+	  );
 	};
 
-	Characteristic.prototype.notify = function (notify, callback) {
+	Characteristic.prototype.notify = function(notify, callback) {
 	  if (callback) {
-	    this.once('notify', function () {
+	    this.once('notify', function() {
 	      callback(null);
 	    });
 	  }
 
-	  this._noble.notify(this._peripheralId, this._serviceUuid, this.uuid, notify);
+	  this._noble.notify(
+	    this._peripheralId,
+	    this._serviceUuid,
+	    this.uuid,
+	    notify
+	  );
 	};
 
-	Characteristic.prototype.discoverDescriptors = function (callback) {
+	Characteristic.prototype.discoverDescriptors = function(callback) {
 	  if (callback) {
-	    this.once('descriptorsDiscover', function (descriptors) {
+	    this.once('descriptorsDiscover', function(descriptors) {
 	      callback(null, descriptors);
 	    });
 	  }
 
-	  this._noble.discoverDescriptors(this._peripheralId, this._serviceUuid, this.uuid);
+	  this._noble.discoverDescriptors(
+	    this._peripheralId,
+	    this._serviceUuid,
+	    this.uuid
+	  );
 	};
 
 	module.exports = Characteristic;
+
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(10), __webpack_require__(1).Buffer))
 
 /***/ },
@@ -5347,9 +5397,7 @@
 /* 24 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(Buffer) {'use strict';
-
-	var debug = __webpack_require__(16)('descriptor');
+	/* WEBPACK VAR INJECTION */(function(Buffer) {var debug = __webpack_require__(16)('descriptor');
 
 	var events = __webpack_require__(8);
 	var util = __webpack_require__(9);
@@ -5375,7 +5423,7 @@
 
 	util.inherits(Descriptor, events.EventEmitter);
 
-	Descriptor.prototype.toString = function () {
+	Descriptor.prototype.toString = function() {
 	  return JSON.stringify({
 	    uuid: this.uuid,
 	    name: this.name,
@@ -5383,29 +5431,41 @@
 	  });
 	};
 
-	Descriptor.prototype.readValue = function (callback) {
+	Descriptor.prototype.readValue = function(callback) {
 	  if (callback) {
-	    this.once('valueRead', function (data) {
+	    this.once('valueRead', function(data) {
 	      callback(null, data);
 	    });
 	  }
-	  this._noble.readValue(this._peripheralId, this._serviceUuid, this._characteristicUuid, this.uuid);
+	  this._noble.readValue(
+	    this._peripheralId,
+	    this._serviceUuid,
+	    this._characteristicUuid,
+	    this.uuid
+	  );
 	};
 
-	Descriptor.prototype.writeValue = function (data, callback) {
+	Descriptor.prototype.writeValue = function(data, callback) {
 	  if (!(data instanceof Buffer)) {
 	    throw new Error('data must be a Buffer');
 	  }
 
 	  if (callback) {
-	    this.once('valueWrite', function () {
+	    this.once('valueWrite', function() {
 	      callback(null);
 	    });
 	  }
-	  this._noble.writeValue(this._peripheralId, this._serviceUuid, this._characteristicUuid, this.uuid, data);
+	  this._noble.writeValue(
+	    this._peripheralId,
+	    this._serviceUuid,
+	    this._characteristicUuid,
+	    this.uuid,
+	    data
+	  );
 	};
 
 	module.exports = Descriptor;
+
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
 
 /***/ },
@@ -5479,23 +5539,20 @@
 /* 26 */
 /***/ function(module, exports, __webpack_require__) {
 
-	'use strict';
-
-	function resolveBindings() {
+	function resolveBindings(){
 	  if (navigator.bluetooth) {
 	    return __webpack_require__(27);
-	  }
+	  } 
 
 	  return __webpack_require__(29);
 	}
 
 	module.exports = resolveBindings;
 
+
 /***/ },
 /* 27 */
 /***/ function(module, exports, __webpack_require__) {
-
-	/* WEBPACK VAR INJECTION */(function(process) {'use strict';
 
 	var events = __webpack_require__(8);
 	var util = __webpack_require__(9);
@@ -5507,238 +5564,256 @@
 	//stub data until web APIs are implemented.
 	var tempResponses = __webpack_require__(28);
 
-	function addDashes(uuid) {
-	  if (uuid && uuid.length === 32) {
-	    uuid = uuid.substring(0, 8) + '-' + uuid.substring(8, 12) + '-' + uuid.substring(12, 16) + '-' + uuid.substring(16, 20) + '-' + uuid.substring(20);
+
+	function addDashes(uuid){
+	  if(uuid && uuid.length === 32){
+	    uuid = uuid.substring(0,8) + '-' + uuid.substring(8,12) + '-' +  uuid.substring(12,16) + '-' +  uuid.substring(16,20) + '-' +  uuid.substring(20);
 	  }
 	  return uuid;
 	}
 
-	function stripDashes(uuid) {
-	  if (uuid) {
+	function stripDashes(uuid){
+	  if(uuid){
 	    uuid = uuid.split('-').join('');
 	  }
 	  return uuid;
 	}
 
-	var NobleBindings = function NobleBindings() {
+
+	var NobleBindings = function() {
 
 	  this._startScanCommand = null;
 	  this._peripherals = {};
 
 	  var self = this;
 
-	  process.nextTick(function () {
+	  setTimeout(function(){
 	    self.emit('stateChange', 'poweredOn');
-	  });
+	  }, 50); //maybe just a next tick?
+
 	};
 
 	util.inherits(NobleBindings, events.EventEmitter);
 
-	NobleBindings.prototype._onOpen = function () {
+	NobleBindings.prototype._onOpen = function() {
 	  console.log('on -> open');
 	};
 
-	NobleBindings.prototype._onClose = function () {
+	NobleBindings.prototype._onClose = function() {
 	  console.log('on -> close');
 
 	  this.emit('stateChange', 'poweredOff');
 	};
 
-	NobleBindings.prototype.startScanning = function (serviceUuids, allowDuplicates) {
+	NobleBindings.prototype.startScanning = function(serviceUuids, allowDuplicates) {
 	  var self = this;
 	  console.log('startScanning', serviceUuids, allowDuplicates);
 
-	  if (!Array.isArray(serviceUuids)) {
+	  if(!Array.isArray(serviceUuids)){
 	    serviceUuids = [serviceUuids];
 	  }
 
-	  ble.requestDevice({ filters: [{ services: serviceUuids.map(addDashes) }] }).then(function (device) {
-	    console.log('scan finished', device);
-	    if (device) {
+	  ble.requestDevice({ filters: [{ services: serviceUuids.map(addDashes) }] })
+	    .then(function(device){
+	      console.log('scan finished', device);
+	      if(device){
 
-	      var address = device.instanceID;
-	      var rssi;
-	      //TODO use device.adData when api is ready
-	      //rssi = device.adData.rssi;
+	        var address = device.instanceID;
+	        var rssi;
+	        //TODO use device.adData when api is ready
+	        //rssi = device.adData.rssi;
 
-	      self._peripherals[address] = {
-	        uuid: address,
-	        address: address,
-	        advertisement: {}, //advertisement,
-	        rssi: rssi,
-	        device: device,
-	        cachedServices: {}
-	      };
+	        self._peripherals[address] = {
+	          uuid: address,
+	          address: address,
+	          advertisement: {}, //advertisement,
+	          rssi: rssi,
+	          device: device,
+	          cachedServices: {}
+	        };
 
-	      self.emit('discover', device.instanceID, { localName: device.name, serviceUuids: serviceUuids }, device.rssi);
-	    }
-	  }, function (err) {
-	    console.log('err scanning', err);
-	    self.emit('connect', deviceUuid, error);
-	  });
+	        self.emit('discover', device.instanceID, {localName:device.name, serviceUuids: serviceUuids}, device.rssi);
+
+	      }
+	    }, function(err){
+	      console.log('err scanning', err);
+	    });
 
 	  this.emit('scanStart');
 	};
 
-	NobleBindings.prototype.stopScanning = function () {
+	NobleBindings.prototype.stopScanning = function() {
 	  this._startScanCommand = null;
 
 	  //TODO: need web api completed for this to work'=
 	  this.emit('scanStop');
 	};
 
-	NobleBindings.prototype.connect = function (deviceUuid) {
+	NobleBindings.prototype.connect = function(deviceUuid) {
 	  var self = this;
 	  console.log('connect', deviceUuid);
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  // Attempts to connect to remote GATT Server.
-	  peripheral.device.connectGATT().then(function (gattServer) {
-	    peripheral.gattServer = gattServer;
-	    console.log('peripheral connected', gattServer);
-	    self.emit('connect', deviceUuid);
-	  }, function (err) {
-	    console.log('err connecting', err);
-	  });
+	  peripheral.device.connectGATT()
+	    .then(function(gattServer){
+	      peripheral.gattServer = gattServer;
+	      console.log('peripheral connected', gattServer);
+	      self.emit('connect', deviceUuid);
+	    }, function(err){
+	      console.log('err connecting', err);
+	    });
+
 	};
 
-	NobleBindings.prototype.disconnect = function (deviceUuid) {
+	NobleBindings.prototype.disconnect = function(deviceUuid) {
 	  var peripheral = this._peripherals[deviceUuid];
-	  if (peripheral.gattServer) {
+	  if(peripheral.gattServer ){
 	    peripheral.gattServer.disconnect();
 	    this.emit('disconnect', deviceUuid);
 	  }
 	};
 
-	NobleBindings.prototype.updateRssi = function (deviceUuid) {
+	NobleBindings.prototype.updateRssi = function(deviceUuid) {
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  //TODO: need web api completed for this to work
 	  this.emit('rssiUpdate', deviceUuid, rssi);
 	};
 
-	NobleBindings.prototype.discoverServices = function (deviceUuid, uuids) {
+	NobleBindings.prototype.discoverServices = function(deviceUuid, uuids) {
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  //TODO: need web api completed for this to work
-	  if (peripheral) {
+	  if(peripheral){
 	    this.emit('servicesDiscover', deviceUuid, tempResponses.BEAN_SERVICES);
 	  }
+
 	};
 
-	NobleBindings.prototype.discoverIncludedServices = function (deviceUuid, serviceUuid, serviceUuids) {
+	NobleBindings.prototype.discoverIncludedServices = function(deviceUuid, serviceUuid, serviceUuids) {
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  //TODO impelment when web API has functionatility then emit response
 	  //this.emit('includedServicesDiscover', deviceUuid, serviceUuid, includedServiceUuids);
 	};
 
-	NobleBindings.prototype.discoverCharacteristics = function (deviceUuid, serviceUuid, characteristicUuids) {
+	NobleBindings.prototype.discoverCharacteristics = function(deviceUuid, serviceUuid, characteristicUuids) {
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  //TODO need a web api to do this
-	  if (peripheral) {
+	  if(peripheral){
 	    this.emit('characteristicsDiscover', deviceUuid, serviceUuid, tempResponses.BEAN_CHARACTERISTICS[serviceUuid] || []);
 	  }
+
 	};
 
-	NobleBindings.prototype._getPrimaryService = function (peripheral, serviceUuid) {
+	NobleBindings.prototype._getPrimaryService = function(peripheral, serviceUuid){
 	  serviceUuid = addDashes(serviceUuid);
-
-	  if (peripheral.cachedServices[serviceUuid]) {
-	    return new Promise(function (resolve, reject) {
+	  
+	  if(peripheral.cachedServices[serviceUuid]){
+	    return new Promise(function(resolve, reject){
 	      resolve(peripheral.cachedServices[serviceUuid]);
 	    });
 	  }
-
-	  return peripheral.gattServer.getPrimaryService(serviceUuid).then(function (service) {
-	    peripheral.cachedServices[serviceUuid] = service;
-	    return service;
-	  });
+	  
+	  return peripheral.gattServer.getPrimaryService(serviceUuid)
+	    .then(function(service){
+	      peripheral.cachedServices[serviceUuid] = service;
+	      return service;
+	    });
 	};
 
-	NobleBindings.prototype.read = function (deviceUuid, serviceUuid, characteristicUuid) {
+	NobleBindings.prototype.read = function(deviceUuid, serviceUuid, characteristicUuid) {
 	  var self = this;
 	  var peripheral = this._peripherals[deviceUuid];
 	  console.log('read', deviceUuid, serviceUuid, characteristicUuid);
 
-	  self._getPrimaryService(peripheral, serviceUuid).then(function (service) {
-	    return service.getCharacteristic(addDashes(characteristicUuid));
-	  }).then(function (characteristic) {
-	    return characteristic.readValue();
-	  }).then(function (data) {
-	    console.log('value written');
-	    self.emit('write', peripheral.uuid, serviceUuid, characteristicUuid);
-	  })['catch'](function (err) {
-	    console.log('error writing to characteristc', err);
-	  });
+	  self._getPrimaryService(peripheral, serviceUuid)
+	    .then(function(service){
+	      return service.getCharacteristic(addDashes(characteristicUuid));
+	    })
+	    .then(function(characteristic) {
+	      return characteristic.readValue();
+	    })
+	    .then(function(data){
+	      console.log('value written');
+	      self.emit('write', peripheral.uuid, serviceUuid, characteristicUuid);
+	    })
+	    .catch(function(err) {
+	      console.log('error writing to characteristc', err);
+	    });
 	};
 
-	NobleBindings.prototype.write = function (deviceUuid, serviceUuid, characteristicUuid, data, withoutResponse) {
+	NobleBindings.prototype.write = function(deviceUuid, serviceUuid, characteristicUuid, data, withoutResponse) {
 	  var self = this;
 	  var peripheral = this._peripherals[deviceUuid];
 	  console.log('write', deviceUuid, serviceUuid, characteristicUuid, data, withoutResponse);
 
-	  self._getPrimaryService(peripheral, serviceUuid).then(function (service) {
-	    return service.getCharacteristic(addDashes(characteristicUuid));
-	  }).then(function (characteristic) {
-	    return characteristic.writeValue(data);
-	  }).then(function (writeResponse) {
-	    console.log('value written', writeResponse);
-	    self.emit('write', peripheral.uuid, serviceUuid, characteristicUuid);
-	  })['catch'](function (err) {
-	    console.log('error writing to characteristc', err);
-	  });
+	  self._getPrimaryService(peripheral, serviceUuid)
+	    .then(function(service){
+	      return service.getCharacteristic(addDashes(characteristicUuid));
+	    })
+	    .then(function(characteristic) {
+	      return characteristic.writeValue(data);
+	    })
+	    .then(function(writeResponse){
+	      console.log('value written', writeResponse);
+	      self.emit('write', peripheral.uuid, serviceUuid, characteristicUuid);
+	    })
+	    .catch(function(err) {
+	      console.log('error writing to characteristc', err);
+	    });
+	    
 	};
 
-	NobleBindings.prototype.broadcast = function (deviceUuid, serviceUuid, characteristicUuid, broadcast) {
+	NobleBindings.prototype.broadcast = function(deviceUuid, serviceUuid, characteristicUuid, broadcast) {
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  //TODO impelment when web API has functionatility then emit response
 	  //this.emit('broadcast', deviceUuid, serviceUuid, characteristicUuid, state);
 	};
 
-	NobleBindings.prototype.notify = function (deviceUuid, serviceUuid, characteristicUuid, notify) {
+	NobleBindings.prototype.notify = function(deviceUuid, serviceUuid, characteristicUuid, notify) {
 	  var peripheral = this._peripherals[deviceUuid];
-
+	  
 	  console.log('notify not yet implemented', serviceUuid, characteristicUuid, notify);
-
+	  
 	  //TODO impelment when web API has functionatility then emit response
 	  this.emit('notify', deviceUuid, serviceUuid, characteristicUuid, true);
 	};
 
-	NobleBindings.prototype.discoverDescriptors = function (deviceUuid, serviceUuid, characteristicUuid) {
+	NobleBindings.prototype.discoverDescriptors = function(deviceUuid, serviceUuid, characteristicUuid) {
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  //TODO impelment when web API has functionatility then emit response
 	  //this.emit('descriptorsDiscover', deviceUuid, serviceUuid, characteristicUuid, descriptors);
 	};
 
-	NobleBindings.prototype.readValue = function (deviceUuid, serviceUuid, characteristicUuid, descriptorUuid) {
+	NobleBindings.prototype.readValue = function(deviceUuid, serviceUuid, characteristicUuid, descriptorUuid) {
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  //TODO impelment when web API has functionatility then emit response
 	  //this.emit('valueRead', deviceUuid, serviceUuid, characteristicUuid, descriptorUuid, data);
 	};
 
-	NobleBindings.prototype.writeValue = function (deviceUuid, serviceUuid, characteristicUuid, descriptorUuid, data) {
+	NobleBindings.prototype.writeValue = function(deviceUuid, serviceUuid, characteristicUuid, descriptorUuid, data) {
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  //TODO impelment when web API has functionatility then emit response
 	  //this.emit('valueWrite', deviceUuid, serviceUuid, characteristicUuid, descriptorUuid);
 	};
 
-	NobleBindings.prototype.readHandle = function (deviceUuid, handle) {
+	NobleBindings.prototype.readHandle = function(deviceUuid, handle) {
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  //TODO impelment when web API has functionatility then emit response
 	  //this.emit('handleRead', deviceUuid, handle, data);
 	};
 
-	NobleBindings.prototype.writeHandle = function (deviceUuid, handle, data, withoutResponse) {
+	NobleBindings.prototype.writeHandle = function(deviceUuid, handle, data, withoutResponse) {
 	  var peripheral = this._peripherals[deviceUuid];
-
+	  
 	  //TODO impelment when web API has functionatility then emit response
 	  //this.emit('handleWrite', deviceUuid, handle);
 	};
@@ -5746,7 +5821,7 @@
 	var nobleBindings = new NobleBindings();
 
 	module.exports = nobleBindings;
-	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(10)))
+
 
 /***/ },
 /* 28 */
@@ -5756,39 +5831,62 @@
 
 	//temporary data until web api is finished.  Based on LightBlue Bean services/characteristics.
 
-	module.exports.BEAN_SERVICES = ['f000ffc004514000b000000000000000', '1800', '1801', '180a', 'a495ff10c5b14b44b5121370f02d74de', 'a495ff20c5b14b44b5121370f02d74de', '180f'];
+	module.exports.BEAN_SERVICES = [
+	  'f000ffc004514000b000000000000000',
+	  '1800',
+	  '1801',
+	  '180a',
+	  'a495ff10c5b14b44b5121370f02d74de',
+	  'a495ff20c5b14b44b5121370f02d74de',
+	  '180f'
+	];
 
 	module.exports.BEAN_CHARACTERISTICS = {
-	  "1800": [{ properties: ['read'], uuid: '2a00' }, { properties: ['read'], uuid: '2a01' }, { properties: ['read', 'write'], uuid: '2a02' }, { properties: ['write'], uuid: '2a03' }, { properties: ['read'], uuid: '2a04' }],
-	  "1801": [{ properties: ['indicate'], uuid: '2a05' }],
-	  "a495ff10c5b14b44b5121370f02d74de": [{ properties: ['read', 'writeWithoutResponse', 'write', 'notify'],
-	    uuid: 'a495ff11c5b14b44b5121370f02d74de' }],
-	  "180f": [{ properties: ['read', 'notify'], uuid: '2a19' }],
-	  "f000ffc004514000b000000000000000": [{ properties: ['writeWithoutResponse', 'write', 'notify'],
-	    uuid: 'f000ffc104514000b000000000000000' }, { properties: ['writeWithoutResponse', 'write', 'notify'],
-	    uuid: 'f000ffc204514000b000000000000000' }],
-	  "180a": [{ properties: ['read'], uuid: '2a23' }, { properties: ['read'], uuid: '2a24' }, { properties: ['read'], uuid: '2a25' }, { properties: ['read'], uuid: '2a26' }, { properties: ['read'], uuid: '2a27' }, { properties: ['read'], uuid: '2a28' }, { properties: ['read'], uuid: '2a29' }, { properties: ['read'], uuid: '2a2a' }, { properties: ['read'], uuid: '2a50' }],
-	  "a495ff20c5b14b44b5121370f02d74de": [{ properties: ['read', 'write'],
-	    uuid: 'a495ff21c5b14b44b5121370f02d74de' }, { properties: ['read', 'write'],
-	    uuid: 'a495ff22c5b14b44b5121370f02d74de' }, { properties: ['read', 'write'],
-	    uuid: 'a495ff23c5b14b44b5121370f02d74de' }, { properties: ['read', 'write'],
-	    uuid: 'a495ff24c5b14b44b5121370f02d74de' }, { properties: ['read', 'write'],
-	    uuid: 'a495ff25c5b14b44b5121370f02d74de' }]
+	  "1800": [ { properties: [ 'read' ], uuid: '2a00' },
+	    { properties: [ 'read' ], uuid: '2a01' },
+	    { properties: [ 'read', 'write' ], uuid: '2a02' },
+	    { properties: [ 'write' ], uuid: '2a03' },
+	    { properties: [ 'read' ], uuid: '2a04' } ],
+	  "1801": [ { properties: [ 'indicate' ], uuid: '2a05' } ],
+	  "a495ff10c5b14b44b5121370f02d74de": [ { properties: [ 'read', 'writeWithoutResponse', 'write', 'notify' ],
+	      uuid: 'a495ff11c5b14b44b5121370f02d74de' } ],
+	  "180f": [ { properties: [ 'read', 'notify' ], uuid: '2a19' } ],
+	  "f000ffc004514000b000000000000000": [ { properties: [ 'writeWithoutResponse', 'write', 'notify' ],
+	      uuid: 'f000ffc104514000b000000000000000' },
+	    { properties: [ 'writeWithoutResponse', 'write', 'notify' ],
+	      uuid: 'f000ffc204514000b000000000000000' } ],
+	  "180a": [ { properties: [ 'read' ], uuid: '2a23' },
+	    { properties: [ 'read' ], uuid: '2a24' },
+	    { properties: [ 'read' ], uuid: '2a25' },
+	    { properties: [ 'read' ], uuid: '2a26' },
+	    { properties: [ 'read' ], uuid: '2a27' },
+	    { properties: [ 'read' ], uuid: '2a28' },
+	    { properties: [ 'read' ], uuid: '2a29' },
+	    { properties: [ 'read' ], uuid: '2a2a' },
+	    { properties: [ 'read' ], uuid: '2a50' } ],
+	  "a495ff20c5b14b44b5121370f02d74de": [ { properties: [ 'read', 'write' ],
+	      uuid: 'a495ff21c5b14b44b5121370f02d74de' },
+	    { properties: [ 'read', 'write' ],
+	      uuid: 'a495ff22c5b14b44b5121370f02d74de' },
+	    { properties: [ 'read', 'write' ],
+	      uuid: 'a495ff23c5b14b44b5121370f02d74de' },
+	    { properties: [ 'read', 'write' ],
+	      uuid: 'a495ff24c5b14b44b5121370f02d74de' },
+	    { properties: [ 'read', 'write' ],
+	      uuid: 'a495ff25c5b14b44b5121370f02d74de' } ]
 	};
 
 /***/ },
 /* 29 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(process, Buffer) {'use strict';
-
-	var events = __webpack_require__(8);
+	/* WEBPACK VAR INJECTION */(function(process, Buffer) {var events = __webpack_require__(8);
 	var util = __webpack_require__(9);
 
 	var debug = __webpack_require__(16)('bindings');
 	var WebSocket = __webpack_require__(30);
 
-	var NobleBindings = function NobleBindings() {
+	var NobleBindings = function() {
 	  var port = 0xB1e;
 	  this._ws = new WebSocket('ws://localhost:' + port);
 
@@ -5805,8 +5903,8 @@
 	  this._ws.on('close', this._onClose.bind(this));
 
 	  var _this = this;
-	  this._ws.on('message', function (event) {
-	    var data = process.title === 'browser' ? event.data : event;
+	  this._ws.on('message', function(event) {
+	    var data = (process.title === 'browser') ? event.data : event;
 
 	    _this.emit('message', JSON.parse(data));
 	  });
@@ -5814,17 +5912,17 @@
 
 	util.inherits(NobleBindings, events.EventEmitter);
 
-	NobleBindings.prototype._onOpen = function () {
+	NobleBindings.prototype._onOpen = function() {
 	  console.log('on -> open');
 	};
 
-	NobleBindings.prototype._onClose = function () {
+	NobleBindings.prototype._onClose = function() {
 	  console.log('on -> close');
 
 	  this.emit('stateChange', 'poweredOff');
 	};
 
-	NobleBindings.prototype._onMessage = function (event) {
+	NobleBindings.prototype._onMessage = function(event) {
 	  var type = event.type;
 	  var peripheralUuid = event.peripheralUuid;
 	  var address = event.address;
@@ -5851,8 +5949,8 @@
 	      localName: advertisement.localName,
 	      txPowerLevel: advertisement.txPowerLevel,
 	      serviceUuids: advertisement.serviceUuids,
-	      manufacturerData: advertisement.manufacturerData ? new Buffer(advertisement.manufacturerData, 'hex') : null,
-	      serviceData: advertisement.serviceData ? new Buffer(advertisement.serviceData, 'hex') : null
+	      manufacturerData: (advertisement.manufacturerData ? new Buffer(advertisement.manufacturerData, 'hex') : null),
+	      serviceData: (advertisement.serviceData ? new Buffer(advertisement.serviceData, 'hex') : null)
 	    };
 
 	    this._peripherals[peripheralUuid] = {
@@ -5898,13 +5996,13 @@
 	  }
 	};
 
-	NobleBindings.prototype._sendCommand = function (command) {
+	NobleBindings.prototype._sendCommand = function(command) {
 	  var message = JSON.stringify(command);
 
 	  this._ws.send(message);
 	};
 
-	NobleBindings.prototype.startScanning = function (serviceUuids, allowDuplicates) {
+	NobleBindings.prototype.startScanning = function(serviceUuids, allowDuplicates) {
 	  this._startScanCommand = {
 	    action: 'startScanning',
 	    serviceUuids: serviceUuids,
@@ -5915,7 +6013,7 @@
 	  this.emit('scanStart');
 	};
 
-	NobleBindings.prototype.stopScanning = function () {
+	NobleBindings.prototype.stopScanning = function() {
 	  this._startScanCommand = null;
 
 	  this._sendCommand({
@@ -5925,7 +6023,7 @@
 	  this.emit('scanStop');
 	};
 
-	NobleBindings.prototype.connect = function (deviceUuid) {
+	NobleBindings.prototype.connect = function(deviceUuid) {
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  this._sendCommand({
@@ -5934,7 +6032,7 @@
 	  });
 	};
 
-	NobleBindings.prototype.disconnect = function (deviceUuid) {
+	NobleBindings.prototype.disconnect = function(deviceUuid) {
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  this._sendCommand({
@@ -5943,7 +6041,7 @@
 	  });
 	};
 
-	NobleBindings.prototype.updateRssi = function (deviceUuid) {
+	NobleBindings.prototype.updateRssi = function(deviceUuid) {
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  this._sendCommand({
@@ -5952,7 +6050,7 @@
 	  });
 	};
 
-	NobleBindings.prototype.discoverServices = function (deviceUuid, uuids) {
+	NobleBindings.prototype.discoverServices = function(deviceUuid, uuids) {
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  this._sendCommand({
@@ -5962,7 +6060,7 @@
 	  });
 	};
 
-	NobleBindings.prototype.discoverIncludedServices = function (deviceUuid, serviceUuid, serviceUuids) {
+	NobleBindings.prototype.discoverIncludedServices = function(deviceUuid, serviceUuid, serviceUuids) {
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  this._sendCommand({
@@ -5973,7 +6071,7 @@
 	  });
 	};
 
-	NobleBindings.prototype.discoverCharacteristics = function (deviceUuid, serviceUuid, characteristicUuids) {
+	NobleBindings.prototype.discoverCharacteristics = function(deviceUuid, serviceUuid, characteristicUuids) {
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  this._sendCommand({
@@ -5984,7 +6082,7 @@
 	  });
 	};
 
-	NobleBindings.prototype.read = function (deviceUuid, serviceUuid, characteristicUuid) {
+	NobleBindings.prototype.read = function(deviceUuid, serviceUuid, characteristicUuid) {
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  this._sendCommand({
@@ -5995,7 +6093,7 @@
 	  });
 	};
 
-	NobleBindings.prototype.write = function (deviceUuid, serviceUuid, characteristicUuid, data, withoutResponse) {
+	NobleBindings.prototype.write = function(deviceUuid, serviceUuid, characteristicUuid, data, withoutResponse) {
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  this._sendCommand({
@@ -6008,7 +6106,7 @@
 	  });
 	};
 
-	NobleBindings.prototype.broadcast = function (deviceUuid, serviceUuid, characteristicUuid, broadcast) {
+	NobleBindings.prototype.broadcast = function(deviceUuid, serviceUuid, characteristicUuid, broadcast) {
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  this._sendCommand({
@@ -6020,7 +6118,7 @@
 	  });
 	};
 
-	NobleBindings.prototype.notify = function (deviceUuid, serviceUuid, characteristicUuid, notify) {
+	NobleBindings.prototype.notify = function(deviceUuid, serviceUuid, characteristicUuid, notify) {
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  this._sendCommand({
@@ -6032,7 +6130,7 @@
 	  });
 	};
 
-	NobleBindings.prototype.discoverDescriptors = function (deviceUuid, serviceUuid, characteristicUuid) {
+	NobleBindings.prototype.discoverDescriptors = function(deviceUuid, serviceUuid, characteristicUuid) {
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  this._sendCommand({
@@ -6043,7 +6141,7 @@
 	  });
 	};
 
-	NobleBindings.prototype.readValue = function (deviceUuid, serviceUuid, characteristicUuid, descriptorUuid) {
+	NobleBindings.prototype.readValue = function(deviceUuid, serviceUuid, characteristicUuid, descriptorUuid) {
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  this._sendCommand({
@@ -6055,7 +6153,7 @@
 	  });
 	};
 
-	NobleBindings.prototype.writeValue = function (deviceUuid, serviceUuid, characteristicUuid, descriptorUuid, data) {
+	NobleBindings.prototype.writeValue = function(deviceUuid, serviceUuid, characteristicUuid, descriptorUuid, data) {
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  this._sendCommand({
@@ -6068,7 +6166,7 @@
 	  });
 	};
 
-	NobleBindings.prototype.readHandle = function (deviceUuid, handle) {
+	NobleBindings.prototype.readHandle = function(deviceUuid, handle) {
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  this._sendCommand({
@@ -6078,7 +6176,7 @@
 	  });
 	};
 
-	NobleBindings.prototype.writeHandle = function (deviceUuid, handle, data, withoutResponse) {
+	NobleBindings.prototype.writeHandle = function(deviceUuid, handle, data, withoutResponse) {
 	  var peripheral = this._peripherals[deviceUuid];
 
 	  this._sendCommand({
@@ -6093,6 +6191,7 @@
 	var nobleBindings = new NobleBindings();
 
 	module.exports = nobleBindings;
+
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(10), __webpack_require__(1).Buffer))
 
 /***/ },
@@ -6233,15 +6332,17 @@
 	var SERIAL_UUID = 'a495ff10c5b14b44b5121370f02d74de';
 	var BEAN_SERIAL_CHAR_UUID = 'a495ff11c5b14b44b5121370f02d74de';
 
-	var Bean = function Bean(peripheral) {
-	  if (!(this instanceof Bean)) return new Bean();
+	var Bean = function(peripheral) {
+	  if (!(this instanceof Bean)) 
+	  return new Bean();
 
 	  NobleDevice.call(this, peripheral);
-
+	  
 	  EventEmitter.call(this);
 
 	  this.count = 0;
 	  this.gst = new Buffer(0);
+
 	};
 
 	Bean.SCAN_UUIDS = [SERIAL_UUID];
@@ -6249,30 +6350,33 @@
 	util.inherits(Bean, EventEmitter);
 	NobleDevice.Util.inherits(Bean, NobleDevice);
 
-	Bean.prototype.connectAndSetup = function (callback) {
+	Bean.prototype.connectAndSetup = function(callback) {
 
 	  var self = this;
 
-	  NobleDevice.prototype.connectAndSetup.call(self, function () {
+	  NobleDevice.prototype.connectAndSetup.call(self, function(){
 
-	    self.notifyCharacteristic(SERIAL_UUID, BEAN_SERIAL_CHAR_UUID, true, self._onRead.bind(self), function (err) {
+	    self.notifyCharacteristic(SERIAL_UUID, BEAN_SERIAL_CHAR_UUID, true, self._onRead.bind(self), function(err){
 
 	      if (err) throw err;
 
-	      self.emit('ready', err);
+	      self.emit('ready',err);
 	      callback(err);
+
 	    });
+
 	  });
+
 	};
 
-	Bean.prototype._onRead = function (gt) {
+	Bean.prototype._onRead = function(gt){
 
 	  //see https://github.com/PunchThrough/bean-documentation/blob/master/serial_message_protocol.md
 
 	  //Received a single GT packet
-	  var start = gt[0] & 0x80; //Set to 1 for the first packet of each App Message, 0 for every other packet
-	  var messageCount = gt[0] & 0x60; //Increments and rolls over on each new GT Message (0, 1, 2, 3, 0, ...)
-	  var packetCount = gt[0] & 0x1F; //Represents the number of packets remaining in the GST message
+	  var start = (gt[0] & 0x80); //Set to 1 for the first packet of each App Message, 0 for every other packet
+	  var messageCount = (gt[0] & 0x60); //Increments and rolls over on each new GT Message (0, 1, 2, 3, 0, ...)
+	  var packetCount = (gt[0] & 0x1F); //Represents the number of packets remaining in the GST message
 
 	  //first packet, reset data buffer
 	  if (start) {
@@ -6280,55 +6384,65 @@
 	  }
 
 	  //TODO probably only if messageCount is in order
-	  this.gst = Buffer.concat([this.gst, gt.slice(1)]);
+	  this.gst = Buffer.concat( [this.gst, gt.slice(1)] );
 
 	  //last packet, process and emit
-	  if (packetCount === 0) {
+	  if(packetCount === 0){
 
 	    var length = this.gst[0]; //size of thse cmd and payload
 
 	    //crc only the size, cmd and payload
-	    var crcString = crc.crc16ccitt(this.gst.slice(0, this.gst.length - 2));
+	    var crcString = crc.crc16ccitt(this.gst.slice(0,this.gst.length-2));
 	    //messy buffer equality because we have to swap bytes and can't use string equality because tostring drops leading zeros
 	    var crc16 = new Buffer(crcString, 'hex');
-	    var valid = crc16[0] === this.gst[this.gst.length - 1] && crc16[1] === this.gst[this.gst.length - 2];
+	    var valid = (crc16[0]===this.gst[this.gst.length-1] && crc16[1]===this.gst[this.gst.length-2]);
 
-	    var command = (this.gst[2] << 8) + this.gst[3] & ~0x80;
+	    var command = ( (this.gst[2] << 8) + this.gst[3] ) & ~(0x80) ;
 
-	    this.emit('raw', this.gst.slice(2, this.gst.length - 2), length, valid, command);
+	    this.emit('raw', this.gst.slice(2,this.gst.length-2), length, valid, command);
 
-	    if (valid) {
+	    if(valid){
 
 	      //ideally some better way to do lookup
-	      if (command === (commands.MSG_ID_CC_ACCEL_READ[0] << 8) + commands.MSG_ID_CC_ACCEL_READ[1]) {
-	        var x = (this.gst[5] << 24 >> 16 | this.gst[4]) * 0.00391;
-	        var y = (this.gst[7] << 24 >> 16 | this.gst[6]) * 0.00391;
-	        var z = (this.gst[9] << 24 >> 16 | this.gst[8]) * 0.00391;
+	      if(command === (commands.MSG_ID_CC_ACCEL_READ[0] << 8 ) + commands.MSG_ID_CC_ACCEL_READ[1])
+	      {
+	        var x = (((this.gst[5] << 24) >> 16) | this.gst[4]) * 0.00391;
+	        var y = (((this.gst[7] << 24) >> 16) | this.gst[6]) * 0.00391;
+	        var z = (((this.gst[9] << 24) >> 16) | this.gst[8]) * 0.00391;
 
 	        this.emit('accell', x.toFixed(5), y.toFixed(5), z.toFixed(5), valid);
-	      } else if (this.gst[2] === commands.MSG_ID_SERIAL_DATA[0] && this.gst[3] === commands.MSG_ID_SERIAL_DATA[1]) {
 
-	        this.emit('serial', this.gst.slice(4, this.gst.length - 2), valid);
-	      } else if (command === (commands.MSG_ID_CC_TEMP_READ[0] << 8) + commands.MSG_ID_CC_TEMP_READ[1]) {
+	      } else if(this.gst[2] === commands.MSG_ID_SERIAL_DATA[0] && this.gst[3] === commands.MSG_ID_SERIAL_DATA[1]){
+
+	        this.emit('serial', this.gst.slice(4,this.gst.length-2), valid);
+
+	      } else if(command === (commands.MSG_ID_CC_TEMP_READ[0] << 8 ) + commands.MSG_ID_CC_TEMP_READ[1]){
 
 	        this.emit('temp', this.gst[4], valid);
-	      } else {
 
-	        this.emit('invalid', this.gst.slice(2, this.gst.length - 2), length, valid, command);
 	      }
+
+	    else{
+
+	      this.emit('invalid', this.gst.slice(2,this.gst.length-2), length, valid, command);
+
+	      }
+
 	    }
+
 	  }
+
 	};
 
-	Bean.prototype.send = function (cmdBuffer, payloadBuffer, done) {
+	Bean.prototype.send = function(cmdBuffer,payloadBuffer,done){
 
 	  //size buffer contains size of(cmdBuffer, and payloadBuffer) and a reserved byte set to 0
 	  var sizeBuffer = new Buffer(2);
-	  sizeBuffer.writeUInt8(cmdBuffer.length + payloadBuffer.length, 0);
-	  sizeBuffer.writeUInt8(0, 1);
+	  sizeBuffer.writeUInt8(cmdBuffer.length + payloadBuffer.length,0);
+	  sizeBuffer.writeUInt8(0,1);
 
 	  //GST contains sizeBuffer, cmdBuffer, and payloadBuffer
-	  var gstBuffer = Buffer.concat([sizeBuffer, cmdBuffer, payloadBuffer]);
+	  var gstBuffer = Buffer.concat([sizeBuffer,cmdBuffer,payloadBuffer]);
 
 	  var crcString = crc.crc16ccitt(gstBuffer);
 	  var crc16Buffer = new Buffer(crcString, 'hex');
@@ -6336,35 +6450,36 @@
 	  //GATT contains sequence header, gstBuffer and crc166
 	  var gattBuffer = new Buffer(1 + gstBuffer.length + crc16Buffer.length);
 
-	  var header = (this.count++ * 0x20 | 0x80) & 0xff;
-	  gattBuffer[0] = header;
+	  var header = (((this.count++ * 0x20) | 0x80) & 0xff);
+	  gattBuffer[0]=header;
 
-	  gstBuffer.copy(gattBuffer, 1, 0); //copy gstBuffer into gatt shifted right 1
+	  gstBuffer.copy(gattBuffer,1,0); //copy gstBuffer into gatt shifted right 1
 
 	  //swap 2 crc bytes and add to end of gatt
-	  gattBuffer[gattBuffer.length - 2] = crc16Buffer[1];
-	  gattBuffer[gattBuffer.length - 1] = crc16Buffer[0];
+	  gattBuffer[gattBuffer.length-2]=crc16Buffer[1];
+	  gattBuffer[gattBuffer.length-1]=crc16Buffer[0];
 
 	  this.writeDataCharacteristic(SERIAL_UUID, BEAN_SERIAL_CHAR_UUID, gattBuffer, done);
+
 	};
 
-	Bean.prototype.unGate = function (done) {
+	Bean.prototype.unGate = function(done){
 	  this.send(commands.MSG_ID_GATING, new Buffer({}), done);
-	};
+	}
 
-	Bean.prototype.write = function (data, done) {
+	Bean.prototype.write = function(data, done){
 	  this.send(commands.MSG_ID_SERIAL_DATA, data, done);
-	};
+	}
 
-	Bean.prototype.setColor = function (color, done) {
+	Bean.prototype.setColor = function(color,done){
 	  this.send(commands.MSG_ID_CC_LED_WRITE_ALL, color, done);
 	};
 
-	Bean.prototype.requestAccell = function (done) {
+	Bean.prototype.requestAccell = function(done){
 	  this.send(commands.MSG_ID_CC_ACCEL_READ, new Buffer([]), done);
 	};
 
-	Bean.prototype.requestTemp = function (done) {
+	Bean.prototype.requestTemp = function(done){
 	  this.send(commands.MSG_ID_CC_TEMP_READ, new Buffer([]), done);
 	};
 
@@ -6859,30 +6974,30 @@
 
 	module.exports = {
 
-	    MSG_ID_SERIAL_DATA: new Buffer([0x00, 0x00]),
-	    MSG_ID_BT_SET_ADV: new Buffer([0x05, 0x00]),
-	    MSG_ID_BT_SET_CONN: new Buffer([0x05, 0x02]),
-	    MSG_ID_BT_SET_LOCAL_NAME: new Buffer([0x05, 0x04]),
-	    MSG_ID_BT_SET_PIN: new Buffer([0x05, 0x06]),
-	    MSG_ID_BT_SET_TX_PWR: new Buffer([0x05, 0x08]),
-	    MSG_ID_BT_GET_CONFIG: new Buffer([0x05, 0x10]),
-	    MSG_ID_BT_ADV_ONOFF: new Buffer([0x05, 0x12]),
-	    MSG_ID_BT_SET_SCRATCH: new Buffer([0x05, 0x14]),
-	    MSG_ID_BT_GET_SCRATCH: new Buffer([0x05, 0x15]),
-	    MSG_ID_BT_RESTART: new Buffer([0x05, 0x20]),
-	    MSG_ID_GATING: new Buffer([0x05, 0x50]),
-	    MSG_ID_BL_CMD: new Buffer([0x10, 0x00]),
-	    MSG_ID_BL_FW_BLOCK: new Buffer([0x10, 0x01]),
-	    MSG_ID_BL_STATUS: new Buffer([0x10, 0x02]),
-	    MSG_ID_CC_LED_WRITE: new Buffer([0x20, 0x00]),
-	    MSG_ID_CC_LED_WRITE_ALL: new Buffer([0x20, 0x01]),
-	    MSG_ID_CC_LED_READ_ALL: new Buffer([0x20, 0x02]),
-	    MSG_ID_CC_ACCEL_READ: new Buffer([0x20, 0x10]),
-	    MSG_ID_CC_TEMP_READ: new Buffer([0x20, 0x11]),
-	    MSG_ID_AR_SET_POWER: new Buffer([0x30, 0x00]),
-	    MSG_ID_AR_GET_CONFIG: new Buffer([0x30, 0x06]),
-	    MSG_ID_DB_LOOPBACK: new Buffer([0xFE, 0x00]),
-	    MSG_ID_DB_COUNTER: new Buffer([0xFE, 0x01])
+	    MSG_ID_SERIAL_DATA        : new Buffer([0x00, 0x00]),
+	    MSG_ID_BT_SET_ADV         : new Buffer([0x05, 0x00]),
+	    MSG_ID_BT_SET_CONN        : new Buffer([0x05, 0x02]),
+	    MSG_ID_BT_SET_LOCAL_NAME  : new Buffer([0x05, 0x04]),
+	    MSG_ID_BT_SET_PIN         : new Buffer([0x05, 0x06]),
+	    MSG_ID_BT_SET_TX_PWR      : new Buffer([0x05, 0x08]),
+	    MSG_ID_BT_GET_CONFIG      : new Buffer([0x05, 0x10]),
+	    MSG_ID_BT_ADV_ONOFF       : new Buffer([0x05, 0x12]),
+	    MSG_ID_BT_SET_SCRATCH     : new Buffer([0x05, 0x14]),
+	    MSG_ID_BT_GET_SCRATCH     : new Buffer([0x05, 0x15]),
+	    MSG_ID_BT_RESTART         : new Buffer([0x05, 0x20]),
+	    MSG_ID_GATING             : new Buffer([0x05, 0x50]),
+	    MSG_ID_BL_CMD             : new Buffer([0x10, 0x00]),
+	    MSG_ID_BL_FW_BLOCK        : new Buffer([0x10, 0x01]),
+	    MSG_ID_BL_STATUS          : new Buffer([0x10, 0x02]),
+	    MSG_ID_CC_LED_WRITE       : new Buffer([0x20, 0x00]),
+	    MSG_ID_CC_LED_WRITE_ALL   : new Buffer([0x20, 0x01]),
+	    MSG_ID_CC_LED_READ_ALL    : new Buffer([0x20, 0x02]),
+	    MSG_ID_CC_ACCEL_READ      : new Buffer([0x20, 0x10]),
+	    MSG_ID_CC_TEMP_READ       : new Buffer([0x20, 0x11]),
+	    MSG_ID_AR_SET_POWER       : new Buffer([0x30, 0x00]),
+	    MSG_ID_AR_GET_CONFIG      : new Buffer([0x30, 0x06]),
+	    MSG_ID_DB_LOOPBACK        : new Buffer([0xFE, 0x00]),
+	    MSG_ID_DB_COUNTER         : new Buffer([0xFE, 0x01]),
 
 	};
 	/* WEBPACK VAR INJECTION */}.call(exports, __webpack_require__(1).Buffer))
@@ -6891,26 +7006,25 @@
 /* 46 */
 /***/ function(module, exports) {
 
-	'use strict';
-
 	var SCRATCH_UUID = 'a495ff20c5b14b44b5121370f02d74de';
 	var SCRATCH_ONE = 'a495ff21c5b14b44b5121370f02d74de';
 
-	function ScratchOne() {}
+	function ScratchOne() {
+	}
 
-	ScratchOne.prototype.readOne = function (callback) {
+	ScratchOne.prototype.readOne = function(callback) {
 	  this.readDataCharacteristic(SCRATCH_UUID, SCRATCH_ONE, callback);
 	};
 
-	ScratchOne.prototype.writeOne = function (data, callback) {
+	ScratchOne.prototype.writeOne = function(data, callback) {
 	  this.writeDataCharacteristic(SCRATCH_UUID, SCRATCH_ONE, data, callback);
 	};
 
-	ScratchOne.prototype.notifyOne = function (onRead, callback) {
+	ScratchOne.prototype.notifyOne = function(onRead, callback) {
 	  this.notifyCharacteristic(SCRATCH_UUID, SCRATCH_ONE, true, onRead, callback);
 	};
 
-	ScratchOne.prototype.unnotifyOne = function (onRead, callback) {
+	ScratchOne.prototype.unnotifyOne = function(onRead, callback) {
 	  this.notifyCharacteristic(SCRATCH_UUID, SCRATCH_ONE, false, onRead, callback);
 	};
 
@@ -6920,26 +7034,25 @@
 /* 47 */
 /***/ function(module, exports) {
 
-	'use strict';
-
 	var SCRATCH_UUID = 'a495ff20c5b14b44b5121370f02d74de';
 	var SCRATCH_TWO = 'a495ff22c5b14b44b5121370f02d74de';
 
-	function ScratchTwo() {}
+	function ScratchTwo() {
+	}
 
-	ScratchTwo.prototype.readTwo = function (callback) {
+	ScratchTwo.prototype.readTwo = function(callback) {
 	  this.readDataCharacteristic(SCRATCH_UUID, SCRATCH_TWO, callback);
 	};
 
-	ScratchTwo.prototype.writeTwo = function (data, callback) {
+	ScratchTwo.prototype.writeTwo = function(data, callback) {
 	  this.writeDataCharacteristic(SCRATCH_UUID, SCRATCH_TWO, data, callback);
 	};
 
-	ScratchTwo.prototype.notifyTwo = function (onRead, callback) {
+	ScratchTwo.prototype.notifyTwo = function(onRead, callback) {
 	  this.notifyCharacteristic(SCRATCH_UUID, SCRATCH_TWO, true, onRead, callback);
 	};
 
-	ScratchTwo.prototype.unnotifyTwo = function (onRead, callback) {
+	ScratchTwo.prototype.unnotifyTwo = function(onRead, callback) {
 	  this.notifyCharacteristic(SCRATCH_UUID, SCRATCH_TWO, false, onRead, callback);
 	};
 
@@ -6949,26 +7062,25 @@
 /* 48 */
 /***/ function(module, exports) {
 
-	'use strict';
-
 	var SCRATCH_UUID = 'a495ff20c5b14b44b5121370f02d74de';
 	var SCRATCH_THREE = 'a495ff23c5b14b44b5121370f02d74de';
 
-	function ScratchThree() {}
+	function ScratchThree() {
+	}
 
-	ScratchThree.prototype.readThree = function (callback) {
+	ScratchThree.prototype.readThree = function(callback) {
 	  this.readDataCharacteristic(SCRATCH_UUID, SCRATCH_THREE, callback);
 	};
 
-	ScratchThree.prototype.writeThree = function (data, callback) {
+	ScratchThree.prototype.writeThree = function(data, callback) {
 	  this.writeDataCharacteristic(SCRATCH_UUID, SCRATCH_THREE, data, callback);
 	};
 
-	ScratchThree.prototype.notifyThree = function (onRead, callback) {
+	ScratchThree.prototype.notifyThree = function(onRead, callback) {
 	  this.notifyCharacteristic(SCRATCH_UUID, SCRATCH_THREE, true, onRead, callback);
 	};
 
-	ScratchThree.prototype.unnotifyThree = function (onRead, callback) {
+	ScratchThree.prototype.unnotifyThree = function(onRead, callback) {
 	  this.notifyCharacteristic(SCRATCH_UUID, SCRATCH_THREE, false, onRead, callback);
 	};
 
@@ -6978,26 +7090,25 @@
 /* 49 */
 /***/ function(module, exports) {
 
-	'use strict';
-
 	var SCRATCH_UUID = 'a495ff20c5b14b44b5121370f02d74de';
 	var SCRATCH_FOUR = 'a495ff24c5b14b44b5121370f02d74de';
 
-	function ScratchFour() {}
+	function ScratchFour() {
+	}
 
-	ScratchFour.prototype.readFour = function (callback) {
+	ScratchFour.prototype.readFour = function(callback) {
 	  this.readDataCharacteristic(SCRATCH_UUID, SCRATCH_FOUR, callback);
 	};
 
-	ScratchFour.prototype.writeFour = function (data, callback) {
+	ScratchFour.prototype.writeFour = function(data, callback) {
 	  this.writeDataCharacteristic(SCRATCH_UUID, SCRATCH_FOUR, data, callback);
 	};
 
-	ScratchFour.prototype.notifyFour = function (onRead, callback) {
+	ScratchFour.prototype.notifyFour = function(onRead, callback) {
 	  this.notifyCharacteristic(SCRATCH_UUID, SCRATCH_FOUR, true, onRead, callback);
 	};
 
-	ScratchFour.prototype.unnotifyFour = function (onRead, callback) {
+	ScratchFour.prototype.unnotifyFour = function(onRead, callback) {
 	  this.notifyCharacteristic(SCRATCH_UUID, SCRATCH_FOUR, false, onRead, callback);
 	};
 
@@ -7007,26 +7118,25 @@
 /* 50 */
 /***/ function(module, exports) {
 
-	'use strict';
-
 	var SCRATCH_UUID = 'a495ff20c5b14b44b5121370f02d74de';
 	var SCRATCH_FIVE = 'a495ff25c5b14b44b5121370f02d74de';
 
-	function ScratchFive() {}
+	function ScratchFive() {
+	}
 
-	ScratchFive.prototype.readFive = function (callback) {
+	ScratchFive.prototype.readFive = function(callback) {
 	  this.readDataCharacteristic(SCRATCH_UUID, SCRATCH_FIVE, callback);
 	};
 
-	ScratchFive.prototype.writeFive = function (data, callback) {
+	ScratchFive.prototype.writeFive = function(data, callback) {
 	  this.writeDataCharacteristic(SCRATCH_UUID, SCRATCH_FIVE, data, callback);
 	};
 
-	ScratchFive.prototype.notifyFive = function (onRead, callback) {
+	ScratchFive.prototype.notifyFive = function(onRead, callback) {
 	  this.notifyCharacteristic(SCRATCH_UUID, SCRATCH_FIVE, true, onRead, callback);
 	};
 
-	ScratchFive.prototype.unnotifyFive = function (onRead, callback) {
+	ScratchFive.prototype.unnotifyFive = function(onRead, callback) {
 	  this.notifyCharacteristic(SCRATCH_UUID, SCRATCH_FIVE, false, onRead, callback);
 	};
 
