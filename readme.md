@@ -1,6 +1,6 @@
 #CoolBeans
 
-Demo of running [noble](git@github.com:monteslu/coolbeans.git) in a web page.
+Demo of running [noble](https://github.com/sandeepmistry/noble) in a web page. Directly from the web page without websockets or plugins.  It's based on work being done to shim noble on top of the new [Web Bluetooth API](https://webbluetoothcg.github.io/web-bluetooth/)
 
 ##Screenshot
 
